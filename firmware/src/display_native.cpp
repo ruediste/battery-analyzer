@@ -5,6 +5,7 @@
 #include "display.h"
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 namespace display
 {
 
@@ -17,10 +18,10 @@ namespace display
   {
     printf("\x1B[%iA", displayRows + 2); // move up
 
-    printf("\x1B[0G");                   // move to first column
+    printf("\x1B[0G"); // move to first column
     for (int i = 0; i < displayCols; i++)
       printf("-");
-   printf("\x1B[1B"); // move 1 lines down
+    printf("\x1B[1B"); // move 1 lines down
 
     for (int i = 0; i < displayRows; i++)
     {
@@ -33,7 +34,7 @@ namespace display
     printf("\x1B[0G"); // move to first column
     for (int i = 0; i < displayCols; i++)
       printf("-");
-      
+
     printf("\x1B[1B"); // move 1 lines down
     printf("\x1B[0G"); // move to first column
   }
@@ -45,7 +46,7 @@ namespace display
     }
   }
 
-  void print(const char *str)
+  size_t print(const char *str)
   {
     for (int i = 0; i < strlen(str); i++)
     {
@@ -61,14 +62,23 @@ namespace display
       }
     }
     updateDisplay();
+    return strlen(str);
   }
 
-  size_t print(long n, int base) { return 0; }
+  size_t print(long n, int base)
+  {
+    int length = snprintf(NULL, 0, "%ld", n);
+    char *str = (char*)malloc(length + 1);
+    snprintf(str, length + 1, "%ld", n);
+    print(str);
+    free(str);
+    return length;
+  }
 
   void clear()
   {
     for (int row = 0; row < displayRows; row++)
-      for (int col = 0; col < displayRows; col++)
+      for (int col = 0; col < displayCols; col++)
       {
         buffer[row][col] = ' ';
       }
@@ -83,13 +93,14 @@ namespace display
   void show()
   {
     shown = true;
+    for (int i=0; i<displayRows+3; i++) printf("\n");
     updateDisplay();
   }
   void hide()
   {
     shown = false;
-    printf("\x1B[%iA", displayRows+2); // move up
-    for (int i = 0; i < displayRows+2; i++)
+    printf("\x1B[%iA", displayRows + 2); // move up
+    for (int i = 0; i < displayRows + 2; i++)
     {
       printf("\x1B[2K"); // clear line
       printf("\x1B[1B"); // move 1 lines down

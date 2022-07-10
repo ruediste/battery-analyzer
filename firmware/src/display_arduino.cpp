@@ -15,7 +15,8 @@ namespace display{
     lcd.backlight();
   }
 
-    void print(const char *str){ lcd.print(str);  }
+    size_t print(const char *str){ return lcd.print(str);  }
+    size_t print(const __FlashStringHelper *ifsh){ return lcd.print(ifsh);  }
 
     size_t print(long n, int base){ return lcd.print(n, base); }
     void clear(){ lcd.clear(); }

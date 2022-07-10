@@ -7,6 +7,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include "display.h"
+#include "controller.h"
+#include "input.h"
 
 int getchar_immediate()
 {
@@ -28,6 +30,7 @@ void showDisplay()
     display::show();
     while (true)
     {
+        controller::loop();
         int ch = getchar_immediate();
         // printf("%x\n", ch);
         if (ch == '\r'   // newline
@@ -43,7 +46,7 @@ void showDisplay()
         if (ch == 0x20)
         {
             // TODO: space
-            display::print("Foo");
+            input::setInputEncoderClicked();
         }
         if (ch == 0x1b)
         {
@@ -54,14 +57,17 @@ void showDisplay()
             if (ch == 0x41)
             {
                 // TODO: up
+                input::moveEncoder(-1);
             }
             if (ch == 0x42)
             {
                 // TODO: down
+                input::moveEncoder(1);
             }
             if (ch == 0x43)
             {
                 // TODO: right
+                input::setInputEncoderClicked();
             }
             if (ch == 0x44)
             {
@@ -73,10 +79,12 @@ void showDisplay()
 }
 int main()
 {
-    printf("Hello World from PlatformIO!\n");
-    display::init();
+    controller::init();
+
+    showDisplay();
     while (true)
     {
+        controller::loop();
         char *line = NULL;
         size_t len = 0;
         printf("> ");
