@@ -1,0 +1,24 @@
+#include "config.h"
+
+#if IS_FRAMEWORK_ARDUINO
+#include <Arduino.h>
+
+#include "display.h"
+#include <LiquidCrystal_I2C.h>
+
+LiquidCrystal_I2C lcd(0x27,20,4);
+
+namespace display{
+
+  void init(){
+    lcd.init();    
+    lcd.backlight();
+  }
+
+    void print(const char *str){ lcd.print(str);  }
+
+    size_t print(long n, int base){ return lcd.print(n, base); }
+    void clear(){ lcd.clear(); }
+    void setCursor(uint8_t x, uint8_t y){ lcd.setCursor(x,y);}
+}
+#endif
