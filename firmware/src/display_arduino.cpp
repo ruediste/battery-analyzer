@@ -15,10 +15,12 @@ namespace display{
     lcd.backlight();
   }
 
+    size_t print(double n){ return lcd.print(n);  }
     size_t print(const char *str){ return lcd.print(str);  }
     size_t print(const __FlashStringHelper *ifsh){ return lcd.print(ifsh);  }
 
-    size_t print(long n, int base){ return lcd.print(n, base); }
+    size_t print(int n){ return lcd.print(n); }
+    size_t print(long n){ return lcd.print(n); }
     void clear(){ lcd.clear(); }
     void setCursor(uint8_t x, uint8_t y){ lcd.setCursor(x,y);}
 }

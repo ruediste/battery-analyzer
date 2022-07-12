@@ -10,7 +10,7 @@ namespace input
 {
   static utils::Protected<boolean> inputEncoderPressed = false;
   static volatile unsigned long lastEncoderPressedChangedMs;
-   bool lastInputEncoderPressed=false;
+  bool lastInputEncoderPressed=false;
 
   void init()
   {

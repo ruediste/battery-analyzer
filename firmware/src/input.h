@@ -38,7 +38,8 @@ namespace input
             inputEncoderClicked = false;
             return true;
         }
-        return false;
+        else
+            return false;
     }
 
     void init();

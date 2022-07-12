@@ -14,15 +14,15 @@ namespace utils
 {
 
 #if IS_FRAMEWORK_ARDUINO
-    inline instantUs_t now()
+    inline instantMs_t now()
     {
-        return micros();
+        return millis();
     }
     inline void disableInterrupts() { noInterrupts(); }
     inline void enableInterrupts() { interrupts(); }
 #endif
 #if IS_FRAMEWORK_NATIVE
-    instantUs_t now();
+    instantMs_t now();
     inline void disableInterrupts() {}
     inline void enableInterrupts() {}
 #endif
@@ -118,6 +118,7 @@ namespace utils
 
 #undef abs
 #undef max
+#undef min
 
 template <class T>
 T abs(T value)
@@ -128,6 +129,11 @@ template <class T>
 T max(T a, T b)
 {
     return a >= b ? a : b;
+}
+template <class T>
+T min(T a, T b)
+{
+    return a <= b ? a : b;
 }
 
 #ifndef ARDUINO

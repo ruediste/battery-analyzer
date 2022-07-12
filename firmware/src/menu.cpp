@@ -60,10 +60,14 @@ namespace menu
     {
         currentHandler = NULL;
     }
+
+    bool active(){
+        return currentHandler!=NULL;
+    }
     
     void loop()
     {
-        if (currentHandler == NULL)
+        if (!active())
             return;
 
         int8_t tmp = input::getAndResetInputEncoder();

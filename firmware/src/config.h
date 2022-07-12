@@ -5,4 +5,6 @@
 
 const int displayCols=20;
 const int displayRows=4;
+
+const int channelCount=1;
 #endif

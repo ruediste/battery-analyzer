@@ -27,5 +27,7 @@ namespace menu
      * */
     void loop();
 
+    bool active();
+
 }
 #endif

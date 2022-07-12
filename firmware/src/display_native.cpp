@@ -8,7 +8,6 @@
 #include <stdlib.h>
 namespace display
 {
-
   char buffer[displayRows][displayCols + 1];
   int cursorX;
   int cursorY;
@@ -16,6 +15,8 @@ namespace display
 
   void updateDisplay()
   {
+    if (!shown)
+      return;
     printf("\x1B[%iA", displayRows + 2); // move up
 
     printf("\x1B[0G"); // move to first column
@@ -61,18 +62,41 @@ namespace display
         cursorY = 0;
       }
     }
-    updateDisplay();
     return strlen(str);
   }
+  
+  void loop(){
+    updateDisplay();
+  }
 
-  size_t print(long n, int base)
+  template <class T> size_t displayPrintf(const char* format, T value)
   {
-    int length = snprintf(NULL, 0, "%ld", n);
+    int length = snprintf(NULL, 0, format, value);
     char *str = (char*)malloc(length + 1);
-    snprintf(str, length + 1, "%ld", n);
+    snprintf(str, length + 1, format, value);
     print(str);
     free(str);
     return length;
+  }
+
+  size_t print(long n)
+  {
+    return displayPrintf("%ld",n);
+  }
+  
+  size_t print(int n)
+  {
+    return displayPrintf("%d",n);
+  }
+
+  size_t print(float n)
+  {
+    return displayPrintf("%f",n);
+  }
+
+  size_t print(double n)
+  {
+    return displayPrintf("%f",n);
   }
 
   void clear()
@@ -82,7 +106,6 @@ namespace display
       {
         buffer[row][col] = ' ';
       }
-    updateDisplay();
   }
   void setCursor(uint8_t x, uint8_t y)
   {

@@ -7,9 +7,9 @@
 #include <stddef.h>
 
 /*
-Timestamp in micro seconds. Wraps every 2e9*1e-6=4e3 seconds = 33 minutes
+Timestamp in milli seconds.
 */
-typedef int32_t instantUs_t;
+typedef int32_t instantMs_t;
 
 #if IS_FRAMEWORK_NATIVE
 #define F(X) X

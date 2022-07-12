@@ -9,6 +9,15 @@
 #include "display.h"
 #include "controller.h"
 #include "input.h"
+#include <pthread.h>
+#include "batteryChannel.h"
+
+pthread_mutex_t lock;
+
+int msleep(unsigned int tms)
+{
+    return usleep(tms * 1000);
+}
 
 int getchar_immediate()
 {
@@ -31,10 +40,13 @@ void showDisplay()
     while (true)
     {
         controller::loop();
+        display::loop();
+        pthread_mutex_unlock(&lock);
         int ch = getchar_immediate();
+        pthread_mutex_lock(&lock);
         // printf("%x\n", ch);
-        if (ch == '\r'   // newline
-            || ch == 4   // ctrl+d
+        if (
+             ch == 4   // ctrl+d
             || ch == 'd' // lower case d
         )
             break;
@@ -43,9 +55,10 @@ void showDisplay()
             // ctrl+c
             exit(1);
         }
-        if (ch == 0x20)
+        if (ch == 0x20// space
+         || ch == '\r'   // newline
+         )
         {
-            // TODO: space
             input::setInputEncoderClicked();
         }
         if (ch == 0x1b)
@@ -77,18 +90,47 @@ void showDisplay()
     }
     display::hide();
 }
+
+void *loopInvoker(void *threadid)
+{
+    printf("Loop Invoker Started");
+    while (true)
+    {
+        controller::loop();
+        display::loop();
+
+        pthread_mutex_unlock(&lock);
+        msleep(100);
+        pthread_mutex_lock(&lock);
+    }
+    pthread_exit(NULL);
+}
+
 int main()
 {
+    if (pthread_mutex_init(&lock, NULL) != 0)
+    {
+        printf("\n mutex init has failed\n");
+        return 1;
+    }
+     pthread_mutex_lock(&lock);
+
     controller::init();
+
+    {
+        pthread_t tid;
+        pthread_create(&tid, NULL, &loopInvoker, NULL);
+    }
 
     showDisplay();
     while (true)
     {
-        controller::loop();
         char *line = NULL;
         size_t len = 0;
         printf("> ");
+        pthread_mutex_unlock(&lock);
         ssize_t lineSize = getline(&line, &len, stdin);
+        pthread_mutex_lock(&lock);
         line[lineSize - 1] = 0;
         if (strcmp("q", line) == 0)
         {
@@ -97,6 +139,10 @@ int main()
         else if (strcmp("d", line) == 0)
         {
             showDisplay();
+        }
+        else if (strcmp("p", line) == 0)
+        {
+            BatteryChannel::channels[0].print();
         }
         else
         {
