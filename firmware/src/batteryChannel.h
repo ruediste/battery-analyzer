@@ -9,9 +9,10 @@ A battery channel controls the charge/discharge process and keeps track of the s
 */
 class BatteryChannel
 {
-    BatteryChannelControl control;
 
 public:
+    BatteryChannelControl control;
+
     BatteryChannel(int channel = -1) : control(channel) {}
     void idle() { this->control.idle(); }
     void charge(float current, float voltage) { this->control.charge(current, voltage); }
@@ -25,6 +26,7 @@ public:
     float outputVoltage(){
         return control.outputVoltage;
     }
+
     float effectiveCurrent()
     {
         return control.effectiveCurrent;
@@ -36,10 +38,6 @@ public:
         {
             channels[i].control.loop();
         }
-    }
-
-    void print(){
-        control.print();
     }
 
     static BatteryChannel channels[];

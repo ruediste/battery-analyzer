@@ -6,68 +6,26 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <ncurses.h>
+
 namespace display
 {
-  char buffer[displayRows][displayCols + 1];
-  int cursorX;
-  int cursorY;
-  bool shown;
+  WINDOW *lcdWindow;
 
-  void updateDisplay()
-  {
-    if (!shown)
-      return;
-    printf("\x1B[%iA", displayRows + 2); // move up
-
-    printf("\x1B[0G"); // move to first column
-    for (int i = 0; i < displayCols; i++)
-      printf("-");
-    printf("\x1B[1B"); // move 1 lines down
-
-    for (int i = 0; i < displayRows; i++)
-    {
-      printf("\x1B[0G"); // move to first column
-      printf("\x1B[2K"); // clear line
-      printf("%s", buffer[i]);
-
-      printf("\x1B[1B"); // move 1 lines down
-    }
-    printf("\x1B[0G"); // move to first column
-    for (int i = 0; i < displayCols; i++)
-      printf("-");
-
-    printf("\x1B[1B"); // move 1 lines down
-    printf("\x1B[0G"); // move to first column
-  }
   void init()
   {
-    for (int row = 0; row < displayRows; row++)
-    {
-      buffer[row][displayCols] = 0;
-    }
+    lcdWindow = newwin(4, 20, 0, 0);
+    box(lcdWindow, 0, 0);
+    wrefresh(lcdWindow);
   }
 
   size_t print(const char *str)
   {
-    for (int i = 0; i < strlen(str); i++)
-    {
-      buffer[cursorY][cursorX++] = str[i];
-      if (cursorX >= displayCols)
-      {
-        cursorX = 0;
-        cursorY++;
-      }
-      if (cursorY >= displayRows)
-      {
-        cursorY = 0;
-      }
-    }
+    wprintw(lcdWindow,str);
+    wrefresh(lcdWindow);
     return strlen(str);
   }
   
-  void loop(){
-    updateDisplay();
-  }
 
   template <class T> size_t displayPrintf(const char* format, T value)
   {
@@ -101,34 +59,12 @@ namespace display
 
   void clear()
   {
-    for (int row = 0; row < displayRows; row++)
-      for (int col = 0; col < displayCols; col++)
-      {
-        buffer[row][col] = ' ';
-      }
-  }
-  void setCursor(uint8_t x, uint8_t y)
-  {
-    cursorX = x;
-    cursorY = y;
+    werase(lcdWindow);
   }
 
-  void show()
+  void setCursor(uint8_t x, uint8_t y)
   {
-    shown = true;
-    for (int i=0; i<displayRows+3; i++) printf("\n");
-    updateDisplay();
-  }
-  void hide()
-  {
-    shown = false;
-    printf("\x1B[%iA", displayRows + 2); // move up
-    for (int i = 0; i < displayRows + 2; i++)
-    {
-      printf("\x1B[2K"); // clear line
-      printf("\x1B[1B"); // move 1 lines down
-    }
-    printf("\x1B[0G"); // move to first column
+    wmove(lcdWindow,y,x);
   }
 }
 #endif

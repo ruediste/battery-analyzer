@@ -22,10 +22,5 @@ namespace display
     size_t print(const __FlashStringHelper *ifsh);
 #endif
 
-#if IS_FRAMEWORK_NATIVE
-    void show();
-    void hide();
-    void loop();
-#endif
 }
 #endif

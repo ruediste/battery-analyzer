@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <ncurses.h>
 #endif
 
 const float refVoltage = 5;
@@ -20,8 +21,8 @@ const float shuntResistance = 0.2;
  * */
 class BatteryChannelControl
 {
-    float targetCurrent=0;
-    float limitVoltage=0;
+    float targetCurrent = 0;
+    float limitVoltage = 0;
 
     instantMs_t nextUpdate = 0;
 
@@ -51,9 +52,9 @@ public:
         CHARGE,
         DISCHARGE
     };
-    Mode mode=Mode::IDLE;
-    float effectiveVoltage=0;
-    float effectiveCurrent=0;
+    Mode mode = Mode::IDLE;
+    float effectiveVoltage = 0;
+    float effectiveCurrent = 0;
     float outputVoltage = 0;
 
     BatteryChannelHal hal;
@@ -80,26 +81,27 @@ public:
 
     void loop();
 
-    void print()
+    void print(WINDOW *w)
     {
 #if IS_FRAMEWORK_NATIVE
-        printf("mode: ");
+        wprintw(w, "mode: ");
         switch (mode)
         {
         case BatteryChannelControl::Mode::CHARGE:
-            printf("CHARGE");
+            wprintw(w, "CHARGE");
             break;
         case BatteryChannelControl::Mode::DISCHARGE:
-            printf("DISCHARGE");
+            wprintw(w, "DISCHARGE");
             break;
         case BatteryChannelControl::Mode::IDLE:
-            printf("IDLE");
+            wprintw(w, "IDLE");
             break;
         }
-        printf(" targetCurrent: %f limitVoltage: %f outputVoltage: %f discharge: %i\n",
-               targetCurrent, limitVoltage, outputVoltage, dischargeEnabled);
-        printf("voltage: %f capacity: %f pwm: %i discharge: %i\n",
-               hal.voltage, hal.capacity, hal.outputPWM, hal.dischargeEnabled);
+        wprintw(w, " targetCurrent: %f limitVoltage: %f outputVoltage: %f discharge: %i\n",
+                targetCurrent, limitVoltage, outputVoltage, dischargeEnabled);
+        wprintw(w, "voltage: %f capacity: %f pwm: %i discharge: %i\n",
+                hal.voltage, hal.capacity, hal.outputPWM, hal.dischargeEnabled);
+        wrefresh(w);
 #endif
     }
 };
