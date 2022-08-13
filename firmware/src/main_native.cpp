@@ -40,9 +40,16 @@ int main()
     cbreak();
     noecho();
     keypad(stdscr, TRUE);
+    curs_set(0);
+    refresh();
 
-    WINDOW *logWindow = newwin(10, COLS, 5, 0);
-    box(logWindow, 0, 0);
+    {
+        WINDOW *wnd = newwin(LINES - 6, COLS, 6, 0);
+        box(wnd, 0, 0);
+        wrefresh(wnd);
+        delwin(wnd);
+    }
+    WINDOW *logWindow = newwin(LINES - 8, COLS - 2, 7, 1);
     scrollok(logWindow, TRUE);
     wrefresh(logWindow);
 
@@ -54,7 +61,6 @@ int main()
     pthread_mutex_lock(&lock);
 
     controller::init();
-
     {
         pthread_t tid;
         pthread_create(&tid, NULL, &loopInvoker, NULL);

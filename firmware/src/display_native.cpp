@@ -12,10 +12,19 @@ namespace display
 {
   WINDOW *lcdWindow;
 
+  const int rows=4;
+  const int cols=20;
   void init()
   {
-    lcdWindow = newwin(4, 20, 0, 0);
-    box(lcdWindow, 0, 0);
+    
+    {
+        WINDOW *wnd = newwin(rows+2, cols+2, 0, 0);
+        box(wnd, 0, 0);
+        wrefresh(wnd);
+        delwin(wnd);
+    }
+
+    lcdWindow = newwin(rows, cols, 1, 1);
     wrefresh(lcdWindow);
   }
 
@@ -49,12 +58,12 @@ namespace display
 
   size_t print(float n)
   {
-    return displayPrintf("%f",n);
+    return displayPrintf("%.2f",n);
   }
 
   size_t print(double n)
   {
-    return displayPrintf("%f",n);
+    return displayPrintf("%.2f",n);
   }
 
   void clear()
