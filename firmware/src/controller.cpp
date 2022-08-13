@@ -23,8 +23,6 @@ namespace controller
         display::setCursor(0, 1);
         display::print(F("VBat "));
         display::print(c.effectiveVoltage());
-        display::print(F(" VOut "));
-        display::print(c.outputVoltage());
 
         display::setCursor(0, 2);
         display::print(F("Current "));

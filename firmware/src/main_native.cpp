@@ -28,7 +28,7 @@ void *loopInvoker(void *threadid)
         controller::loop();
 
         pthread_mutex_unlock(&lock);
-        msleep(100);
+        msleep(10);
         pthread_mutex_lock(&lock);
     }
     pthread_exit(NULL);
@@ -55,7 +55,7 @@ int main()
 
     if (pthread_mutex_init(&lock, NULL) != 0)
     {
-        printf("\n mutex init has failed\n");
+        printf("\nmutex init has failed\n");
         return 1;
     }
     pthread_mutex_lock(&lock);
@@ -76,6 +76,7 @@ int main()
         switch (ch)
         {
         case ' ':
+        case '\n':
         case KEY_ENTER:
         case KEY_RIGHT:
             input::setInputEncoderClicked();

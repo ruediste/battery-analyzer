@@ -15,16 +15,24 @@ public:
 
     BatteryChannel(int channel = -1) : control(channel) {}
     void idle() { this->control.idle(); }
-    void charge(float current, float voltage) { this->control.charge(current, voltage); }
-    void discharge(float current, float voltage) { this->control.discharge(current, voltage); }
+    void charge(float current, float limit)
+    {
+        this->control.target = BatteryChannelControl::Target::CURRENT;
+        this->control.targetCurrent = current;
+        this->control.limitVoltage = limit;
+        this->control.mode = BatteryChannelControl::Mode::SOURCE;
+    }
+    void discharge(float current, float limit)
+    {
+        this->control.target = BatteryChannelControl::Target::CURRENT;
+        this->control.targetCurrent = -current;
+        this->control.limitVoltage = limit;
+        this->control.mode = BatteryChannelControl::Mode::SINK;
+    }
 
     float effectiveVoltage()
     {
         return control.effectiveVoltage;
-    }
-
-    float outputVoltage(){
-        return control.outputVoltage;
     }
 
     float effectiveCurrent()

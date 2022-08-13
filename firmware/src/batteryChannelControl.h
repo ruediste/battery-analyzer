@@ -12,50 +12,56 @@
 #include <ncurses.h>
 #endif
 
-const float refVoltage = 5;
-const float shuntResistance = 0.2;
-
 /**
  * Controls a battery channel via the BatteryChannelHAL. Provides
  * the abstraction of a constant current/constant voltage source/sink.
  * */
 class BatteryChannelControl
 {
-    float targetCurrent = 0;
-    float limitVoltage = 0;
+    float inputVoltage = 5.f;             // TODO: read
+    float shuntResistance = 0.2f;         // TODO: configure
+    float resistorSourceRefVoltage = 5.f; // TODO: configure
+
+    float adcRefVoltage = 5; // volt
+    float maxCurrent = 2;    // ampere
 
     instantMs_t nextUpdate = 0;
 
-    void setOutputVoltage(float value)
-    {
-        if (value != outputVoltage)
-        {
-            outputVoltage = value;
-            hal.setOutputPWM(0xFFFF * max(0.f, min(value / refVoltage, 1.f)));
-        }
-    }
+    bool lastStepWasIncrease = false;
+    float stepSize = 0;
 
-    bool dischargeEnabled = false;
-    void setDischargeEnabled(bool value)
-    {
-        if (value != dischargeEnabled)
-        {
-            dischargeEnabled = value;
-            hal.setDischargeEnabled(value);
-        }
+    uint16_t outputCurrentPWM = 0;
+
+    uint16_t zeroOutputCurrentPWM(){
+        return BatteryChannelHal::MAX_PWM/2;
     }
 
 public:
     enum class Mode
     {
         IDLE,
-        CHARGE,
-        DISCHARGE
+        SOURCE,
+        SINK,
     };
+
+    enum class Target
+    {
+        CURRENT,
+        RESISTANCE,
+        POWER,
+    };
+
     Mode mode = Mode::IDLE;
+    Target target = Target::CURRENT;
+
     float effectiveVoltage = 0;
     float effectiveCurrent = 0;
-    float outputVoltage = 0;
+
+    float targetCurrent = 0;    // amps
+    float targetResistance = 0; // ohm
+    float targetPower = 0;      // watts
+
+    float limitVoltage = 0;
 
     BatteryChannelHal hal;
     BatteryChannelControl(int channel) : hal(BatteryChannelHal(channel))
@@ -66,18 +72,6 @@ public:
     {
         this->mode = BatteryChannelControl::Mode::IDLE;
     }
-    void charge(float current, float voltage)
-    {
-        mode = BatteryChannelControl::Mode::CHARGE;
-        targetCurrent = current;
-        limitVoltage = voltage;
-    }
-    void discharge(float current, float voltage)
-    {
-        mode = BatteryChannelControl::Mode::DISCHARGE;
-        targetCurrent = current;
-        limitVoltage = voltage;
-    }
 
     void loop();
 
@@ -87,20 +81,38 @@ public:
         wprintw(w, "mode: ");
         switch (mode)
         {
-        case BatteryChannelControl::Mode::CHARGE:
-            wprintw(w, "CHARGE");
+        case BatteryChannelControl::Mode::SOURCE:
+            wprintw(w, "SOURCE");
             break;
-        case BatteryChannelControl::Mode::DISCHARGE:
-            wprintw(w, "DISCHARGE");
+        case BatteryChannelControl::Mode::SINK:
+            wprintw(w, "SINK");
             break;
         case BatteryChannelControl::Mode::IDLE:
             wprintw(w, "IDLE");
             break;
         }
-        wprintw(w, " targetCurrent: %f limitVoltage: %f outputVoltage: %f discharge: %i\n",
-                targetCurrent, limitVoltage, outputVoltage, dischargeEnabled);
-        wprintw(w, "voltage: %f capacity: %f pwm: %i discharge: %i\n",
-                hal.voltage, hal.capacity, hal.outputPWM, hal.dischargeEnabled);
+
+        if (mode != BatteryChannelControl::Mode::IDLE)
+        {
+            wprintw(w, " target: ");
+            switch (target)
+            {
+            case BatteryChannelControl::Target::CURRENT:
+                wprintw(w, "CURRENT %f limit: %f", targetCurrent);
+                break;
+            case BatteryChannelControl::Target::RESISTANCE:
+                wprintw(w, "RESISTANCE %f", targetResistance);
+                break;
+            case BatteryChannelControl::Target::POWER:
+                wprintw(w, "POWER %f", targetPower);
+                break;
+            }
+        }
+
+        wprintw(w, " limitVoltage: %f outputCurrent: %i stepSize: %f",
+                limitVoltage, outputCurrentPWM,stepSize);
+        wprintw(w, " HAL: voltage: %f capacity: %f pwm: %i\n",
+                hal.voltage, hal.capacity, hal.outputPWM);
         wrefresh(w);
 #endif
     }

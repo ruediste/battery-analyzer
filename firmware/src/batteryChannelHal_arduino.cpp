@@ -6,9 +6,6 @@
 #include "batteryChannel.h"
 #include <Arduino.h>
 
-void BatteryChannelHal::setDischargeEnabled(bool value)
-{
-}
 void BatteryChannelHal::setOutputPWM(uint16_t value)
 {
     switch (channel)
