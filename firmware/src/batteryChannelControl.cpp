@@ -1,5 +1,6 @@
 #include "batteryChannelControl.h"
 #include "utils.h"
+#include "display.h"
 
 void BatteryChannelControl::loop()
 {
@@ -10,7 +11,7 @@ void BatteryChannelControl::loop()
         nextUpdate = now + 100;
 
         // read back the voltage
-        effectiveVoltage = hal.readVoltage() * adcRefVoltage / 0xFFFF;
+        effectiveVoltage = hal.readVoltage() * config().adcRefVoltage / 0xFFFF;
 
         // calculate the effective current flowing
         {

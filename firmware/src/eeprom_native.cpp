@@ -7,6 +7,7 @@
 
 namespace eeprom
 {
+    Data data;
     uint8_t *buffer;
     void init()
     {
@@ -17,6 +18,19 @@ namespace eeprom
 
         buffer = reinterpret_cast<uint8_t *>(
             mmap(NULL, 4096, PROT_WRITE, MAP_SHARED, eepromFile, 0));
+
+        // read buffer
+        for (int i = 0; i < sizeof(Data); i++)
+        {
+            ((uint8_t *)&data)[i] = buffer[i];
+        }
+
+        if (data.magic!=MAGIC)
+        {
+            data=Data();
+            flush();
+        }
+
     }
 
     uint8_t read(int idx)
@@ -26,8 +40,15 @@ namespace eeprom
 
     void write(int idx, uint8_t val)
     {
-        buffer[idx]=val;
-        
+        buffer[idx] = val;
+    }
+
+    void flush()
+    {
+        for (int i = 0; i < sizeof(Data); i++)
+        {
+            buffer[i] = ((uint8_t *)&data)[i];
+        }
     }
 }
 

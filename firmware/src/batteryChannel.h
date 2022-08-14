@@ -14,6 +14,10 @@ public:
     BatteryChannelControl control;
 
     BatteryChannel(int channel = -1) : control(channel) {}
+    
+    eeprom::ChannelConfig &config(){
+        return eeprom::data.channel[control.hal.channel];
+    }
     void idle() { this->control.idle(); }
     void charge(float current, float limit)
     {

@@ -8,37 +8,58 @@
 
 namespace input
 {
-  static utils::Protected<boolean> inputEncoderPressed = false;
+  static utils::Protected<bool> inputEncoderPressed = false;
   static volatile unsigned long lastEncoderPressedChangedMs;
-  bool lastInputEncoderPressed=false;
+  bool lastInputEncoderPressed = false;
+
+  void processInputs();
 
   void init()
   {
     lastEncoderPressedChangedMs = 0;
-
+#ifdef IS_AVR
     /*
-    For our application we use the pin change interrupt on PortD
-    Input Encoder: 4x with pins PortD2(D2) and PortD3(D3)
-    Input Encoder Switch: PortD4(D4)
-  */
+      For our application we use the pin change interrupt on PortD
+      Input Encoder: 4x with pins PortD2(D2) and PortD3(D3)
+      Input Encoder Switch: PortD4(D4)
+    */
 
     // setup pin change interrupt
-    PORTD = 0b11100;        // enable soft pull up on PortD2-D4
+    PORTD = 0b11100;      // enable soft pull up on PortD2-D4
     PCICR = (1 << PCIE2); // enable pin change interrupt 1 (PCINT 16..28)
-    PCMSK2 = 0b11100;       // enable PortD2-D4 for interrupts
+    PCMSK2 = 0b11100;     // enable PortD2-D4 for interrupts
+#endif
+
+#ifdef IS_STM
+    /*
+    For our application we use the pin change interrupt on Port B
+    Input Encoder: 4x with pins PortB12(B12) and PortB13(B13)
+    Input Encoder Switch: PortV14(B14)
+  */
+
+    // // setup pin change interrupt
+    // AFIO->EXTICR[2] = (AFIO->EXTICR[2] & ~0xFFF) | 0x111; // set pb for EXTI12-EXTI14
+    // EXTI->RTSR |= 0b111 < 12;                             // rising trigger mask
+    // EXTI->FTSR |= 0b111 < 12;                             // falling trigger mask
+    // EXTI->IMR |= 0b111 < 12;                              // interrupt mask
+    attachInterrupt(digitalPinToInterrupt(PB12), processInputs, CHANGE);
+    attachInterrupt(digitalPinToInterrupt(PB13), processInputs, CHANGE);
+    attachInterrupt(digitalPinToInterrupt(PB14), processInputs, CHANGE);
+#endif
   }
 
   void loop()
   {
-      // debounce input encoder pressing
-    bool newValue=inputEncoderPressed;
+    // debounce input encoder pressing
+    bool newValue = inputEncoderPressed;
     if (newValue != lastInputEncoderPressed)
     {
       unsigned long now = millis();
       unsigned long duration = now - lastEncoderPressedChangedMs;
       if (duration > 100)
       {
-        if (newValue) inputEncoderClicked=true;
+        if (newValue)
+          inputEncoderClicked = true;
         lastInputEncoderPressed = newValue;
         lastEncoderPressedChangedMs = now;
       }
@@ -46,12 +67,12 @@ namespace input
   }
 
   /*
- * 00
- * 01
- * 11
- * 10
- * 00
- */
+   * 00
+   * 01
+   * 11
+   * 10
+   * 00
+   */
   int8_t getMovement4x(int8_t oldBits, int8_t newBits)
   {
     switch (oldBits << 2 | newBits)
@@ -76,8 +97,8 @@ namespace input
 
   void processInputs()
   {
-    uint8_t newBits = PIND>>2;
-    int8_t tmp = getMovement4x((oldBits) & 0b11, (newBits) & 0b11);
+    uint8_t newBits = GPIOB->IDR >> 12;
+    int8_t tmp = getMovement4x((oldBits)&0b11, (newBits)&0b11);
     if (tmp != 0)
     {
       countInputEncoderInternal += tmp;
@@ -93,24 +114,16 @@ namespace input
     oldBits = newBits;
   }
 
-  /*
-Check if an input (encoder) change is pending and process it. Should be called from long running interrupt
-handlers to avoid missing encoder steps.
-*/
-  void checkInputs()
-  {
-    // check if the pcint2 is flagged
-    if (PCIFR & 0b100)
-    {
-      processInputs();
-      PCIFR |= 0b100; // clear the flag by writing 1 to it (counterintuitive, but according to datasheet)
-    }
-  }
-
+#ifdef IS_AVR
   ISR(PCINT2_vect)
   {
     processInputs();
   }
+#endif
+
+#ifdef IS_STM
+
+#endif
 } // namespace Input
 
 #endif

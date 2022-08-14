@@ -66,6 +66,10 @@ namespace display
     return displayPrintf("%.2f",n);
   }
 
+  void print(const char ch) {
+    displayPrintf("%.c",ch);
+  }
+
   void clear()
   {
     werase(lcdWindow);

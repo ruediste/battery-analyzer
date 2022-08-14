@@ -4,6 +4,7 @@
 #include "batteryChannelHal.h"
 #include "utils.h"
 #include "config.h"
+#include "eeprom.h"
 
 #if IS_FRAMEWORK_NATIVE
 #include <stdio.h>
@@ -19,10 +20,10 @@
 class BatteryChannelControl
 {
     float inputVoltage = 5.f;             // TODO: read
+
     float shuntResistance = 0.2f;         // TODO: configure
     float resistorSourceRefVoltage = 5.f; // TODO: configure
 
-    float adcRefVoltage = 5; // volt
     float maxCurrent = 2;    // ampere
 
     instantMs_t nextUpdate = 0;
@@ -68,6 +69,10 @@ public:
     {
     }
 
+    eeprom::ChannelConfig &config(){
+        return eeprom::data.channel[hal.channel];
+    }
+
     void idle()
     {
         this->mode = BatteryChannelControl::Mode::IDLE;
@@ -75,9 +80,9 @@ public:
 
     void loop();
 
+#if IS_FRAMEWORK_NATIVE
     void print(WINDOW *w)
     {
-#if IS_FRAMEWORK_NATIVE
         wprintw(w, "mode: ");
         switch (mode)
         {
@@ -114,8 +119,8 @@ public:
         wprintw(w, " HAL: voltage: %f capacity: %f pwm: %i\n",
                 hal.voltage, hal.capacity, hal.outputPWM);
         wrefresh(w);
-#endif
     }
+#endif
 };
 
 #endif

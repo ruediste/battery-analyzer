@@ -125,6 +125,7 @@ T abs(T value)
 {
     return value >= 0 ? value : -value;
 }
+#ifndef IS_STM
 template <class T>
 T max(T a, T b)
 {
@@ -135,7 +136,7 @@ T min(T a, T b)
 {
     return a <= b ? a : b;
 }
-
+#endif
 #ifndef ARDUINO
 #define LOG(x) std::cout << #x << ": " << (x) << "\n";
 #else

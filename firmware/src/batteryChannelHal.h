@@ -8,8 +8,8 @@
  * */
 class BatteryChannelHal
 {
-    uint8_t channel;
 public:
+    uint8_t channel;
 #if IS_FRAMEWORK_NATIVE
     uint16_t outputPWM=0;
     float voltage=3.7;

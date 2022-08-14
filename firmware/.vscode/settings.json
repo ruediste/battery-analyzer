@@ -18,6 +18,8 @@
         "unordered_map": "cpp",
         "fstream": "cpp",
         "numeric": "cpp",
-        "sstream": "cpp"
+        "sstream": "cpp",
+        "string": "cpp",
+        "string_view": "cpp"
     }
 }
