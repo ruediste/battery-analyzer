@@ -8,7 +8,17 @@ namespace eeprom
 {
     struct ChannelConfig
     {
-        float adcRefVoltage=5;
+        float adcRefVoltage=6.6;
+        uint16_t zeroOutputPwm=0x7FF;
+
+        // multiply current (A) with factor to get PWM value
+        float pwmFactor=0xFFFF/4;
+
+        // voltage to assume when sourcing current in resistance/power mode
+        float resistorSourceRefVoltage=5;
+
+        // resistance to calculate the effective shunt input voltage
+        float shuntResistance=0.2;
     };
 
     const uint16_t MAGIC=0xE5E7;
@@ -16,6 +26,10 @@ namespace eeprom
     struct Data
     {
         uint16_t magic=MAGIC;
+
+        // minimum input voltage to assume (used for max current calculation)
+        float minInputVoltage = 5.f;     
+
         ChannelConfig channel[channelCount];
     };
 

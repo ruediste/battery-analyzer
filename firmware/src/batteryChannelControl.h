@@ -19,25 +19,18 @@
  * */
 class BatteryChannelControl
 {
-    float inputVoltage = 5.f;             // TODO: read
-
-    float shuntResistance = 0.2f;         // TODO: configure
-    float resistorSourceRefVoltage = 5.f; // TODO: configure
-
-    float maxCurrent = 2;    // ampere
-
     instantMs_t nextUpdate = 0;
 
     bool lastStepWasIncrease = false;
     float stepSize = 0;
 
-    uint16_t outputCurrentPWM = 0;
 
     uint16_t zeroOutputCurrentPWM(){
         return BatteryChannelHal::MAX_PWM/2;
     }
 
 public:
+    
     enum class Mode
     {
         IDLE,
@@ -56,7 +49,10 @@ public:
     Target target = Target::CURRENT;
 
     float effectiveVoltage = 0;
+    uint16_t effectiveVoltageRaw=0;
+
     float effectiveCurrent = 0;
+    uint16_t outputCurrentPWM = 0;
 
     float targetCurrent = 0;    // amps
     float targetResistance = 0; // ohm
@@ -116,8 +112,8 @@ public:
 
         wprintw(w, " limitVoltage: %f outputCurrent: %i stepSize: %f",
                 limitVoltage, outputCurrentPWM,stepSize);
-        wprintw(w, " HAL: voltage: %f capacity: %f pwm: %i\n",
-                hal.voltage, hal.capacity, hal.outputPWM);
+        wprintw(w, " HAL: voltage: %f capacity: %f pwm: %i current: %f\n",
+                hal.voltage, hal.capacity, hal.outputPWM, hal.outputCurrent);
         wrefresh(w);
     }
 #endif

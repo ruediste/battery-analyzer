@@ -14,6 +14,7 @@ namespace numberInput
     bool editing;
     void (*success)(uint32_t value);
     void (*cancel)();
+    void (*print)();
 
     int cursorColumn()
     {
@@ -97,19 +98,20 @@ namespace numberInput
         }
     }
 
-    void enter(uint32_t initialValue, int digits, int fraction, void (*success)(uint32_t value), void (*cancel)())
+    void enter(uint32_t initialValue, int digits, int fraction, void (*success)(uint32_t value), void (*cancel)(), void (*print)())
     {
         numberInput::value = initialValue;
         numberInput::digits = digits;
         numberInput::fraction = fraction;
         numberInput::success = success;
         numberInput::cancel = cancel;
+        numberInput::print=print;
 
         display::clear();
 
         printValue();
 
-        cursor = digits + fraction;
+        cursor = digits + fraction-1;
         isActive = true;
         editing = false;
 
@@ -118,7 +120,9 @@ namespace numberInput
         display::setCursor(cursorCancelColumn(), 0);
         display::print(F("CA"));
 
-        moveCursor(cursor);
+        moveCursor(cursor); 
+        display::setCursor(0,3);
+        print();
     }
 
     bool active()
@@ -126,10 +130,17 @@ namespace numberInput
         return isActive;
     }
 
+    instantMs_t nextPrint=0;
     void loop()
     {
         if (!isActive)
             return;
+        instantMs_t now=utils::now();
+        if (now>nextPrint){
+            nextPrint=now+500;
+            display::setCursor(0,3);
+            print();
+        }
         int move = input::getAndResetInputEncoder();
         if (move != 0)
         {

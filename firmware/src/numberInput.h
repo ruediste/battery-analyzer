@@ -3,7 +3,7 @@
 
 #include "types.h"
 namespace numberInput{
-    void enter(uint32_t initialValue,int digits, int fraction, void (*success)(uint32_t value), void (*cancel)());
+    void enter(uint32_t initialValue,int digits, int fraction, void (*success)(uint32_t value), void (*cancel)(), void (*print)());
     bool active();
     void loop();
 }

@@ -9,7 +9,7 @@
 
 namespace controller
 {
-    int currentChannel = 0;
+    int _currentChannel = 0;
 
     instantMs_t lastDisplayUpdate = 0;
 
@@ -18,9 +18,9 @@ namespace controller
         display::clear();
         display::setCursor(0, 0);
         display::print(F("Channel "));
-        display::print(currentChannel);
+        display::print(_currentChannel);
 
-        BatteryChannel &c = BatteryChannel::channels[currentChannel];
+        BatteryChannel &c = BatteryChannel::channels[_currentChannel];
         display::setCursor(0, 1);
         display::print(F("VBat "));
         display::print(c.effectiveVoltage());
@@ -33,9 +33,16 @@ namespace controller
     }
 
     void enterChannelMenu();
+    void enterChannelConfigMenu();
 
-    eeprom::ChannelConfig &currentChannelConfig(){
-        return BatteryChannel::channels[currentChannel].config();
+    BatteryChannel &currentChannel()
+    {
+        return BatteryChannel::channels[_currentChannel];
+    }
+
+    eeprom::ChannelConfig &currentChannelConfig()
+    {
+        return currentChannel().config();
     }
 
     struct GlobalConfigMenu : public menu::MenuHandler
@@ -54,7 +61,7 @@ namespace controller
                     display::print(F("Reset EEPROM"));
                 else
                 {
-                    eeprom::data=eeprom::Data();
+                    eeprom::data = eeprom::Data();
                     eeprom::flush();
                 }
                 break;
@@ -76,7 +83,7 @@ namespace controller
     {
         uint8_t menuItemCount() override
         {
-            return 3;
+            return 8;
         }
 
         void handleMenu(uint8_t i, bool print) override
@@ -85,18 +92,115 @@ namespace controller
             {
             case 0:
                 if (print)
-                    display::print(F("Calibrate Voltage"));
+                    display::print(F("Input Voltage"));
                 else
                 {
                     menu::leave();
-                    numberInput::enter(currentChannelConfig().adcRefVoltage*1000,2,3,[](uint32_t value){
-                       currentChannelConfig().adcRefVoltage=value/1000.;
+                    numberInput::enter(
+                        currentChannel().effectiveVoltage() * 1000, 2, 3, [](uint32_t value)
+                        {
+                       currentChannelConfig().adcRefVoltage=value/1000.*0xFFFF/currentChannel().control.effectiveVoltageRaw;
                        eeprom::flush();
-                    }, []{});
+                       enterChannelConfigMenu(); },
+                        []
+                        { enterChannelConfigMenu(); },
+                        []
+                        {
+                            display::print(F("Raw ADC: "));
+                            display::print(currentChannel().control.effectiveVoltageRaw);
+                        });
                 }
-                    ; 
                 break;
             case 1:
+                if (print)
+                    display::print(F("Zero Output PWM"));
+                else
+                {
+                    menu::leave();
+                    numberInput::enter(
+                        currentChannelConfig().zeroOutputPwm, 5, 0, [](uint32_t value)
+                        {
+                       currentChannelConfig().zeroOutputPwm=value;
+                       eeprom::flush();
+                       enterChannelConfigMenu(); },
+                        []
+                        { enterChannelConfigMenu(); },
+                        [] {});
+                }
+                break;
+            case 2:
+                if (print)
+                    display::print(F("Current"));
+                else
+                {
+                    menu::leave();
+                    numberInput::enter(
+                        abs(currentChannel().effectiveCurrent()) * 1000, 2, 3, [](uint32_t value)
+                        {
+                       currentChannelConfig().pwmFactor=(currentChannel().control.outputCurrentPWM-currentChannelConfig().zeroOutputPwm)/(value/1000.);
+                       eeprom::flush();
+                       enterChannelConfigMenu(); },
+                        []
+                        { enterChannelConfigMenu(); },
+                        []
+                        {
+                            display::print(F("Output PWM: "));
+                            display::print(currentChannel().control.outputCurrentPWM);
+                        });
+                }
+                break;
+            case 3:
+                if (print)
+                    display::print(F("Resistor Source Ref Voltage"));
+                else
+                {
+                    menu::leave();
+                    numberInput::enter(
+                        currentChannelConfig().resistorSourceRefVoltage * 1000., 2, 3, [](uint32_t value)
+                        {
+                       currentChannelConfig().resistorSourceRefVoltage=value/1000.;
+                       eeprom::flush();
+                       enterChannelConfigMenu(); },
+                        []
+                        { enterChannelConfigMenu(); },
+                        [] {});
+                }
+                break;
+            case 4:
+                if (print)
+                    display::print(F("Shunt Resistance"));
+                else
+                {
+                    menu::leave();
+                    numberInput::enter(
+                        currentChannelConfig().shuntResistance * 1000., 2, 3, [](uint32_t value)
+                        {
+                       currentChannelConfig().shuntResistance=value/1000.;
+                       eeprom::flush();
+                       enterChannelConfigMenu(); },
+                        []
+                        { enterChannelConfigMenu(); },
+                        [] {});
+                }
+                break;
+            case 5:
+                if (print)
+                    display::print(F("Min Input Voltage"));
+                else
+                {
+                    menu::leave();
+                    numberInput::enter(
+                        eeprom::data.minInputVoltage * 1000., 2, 3, [](uint32_t value)
+                        {
+                      eeprom::data.minInputVoltage=value/1000.;
+                       eeprom::flush();
+                       enterChannelConfigMenu(); },
+                        []
+                        { enterChannelConfigMenu(); },
+                        [] {});
+                }
+                break;
+            case 6:
                 if (print)
                     display::print(F("Global"));
                 else
@@ -104,7 +208,7 @@ namespace controller
                     menu::enter(&globalConfigMenu);
                 }
                 break;
-            case 2:
+            case 7:
                 if (print)
                     display::print(F("..."));
                 else
@@ -117,6 +221,10 @@ namespace controller
     };
 
     ChannelConfigMenu channelConfigMenu;
+    void enterChannelConfigMenu()
+    {
+        menu::enter(&channelConfigMenu);
+    }
 
     struct ChannelMenu : public menu::MenuHandler
     {
@@ -134,19 +242,19 @@ namespace controller
                 if (print)
                     display::print(F("Discharge"));
                 else
-                    BatteryChannel::channels[currentChannel].discharge(1, 3);
+                    currentChannel().discharge(1, 3);
                 break;
             case 1:
                 if (print)
                     display::print(F("Charge"));
                 else
-                    BatteryChannel::channels[currentChannel].charge(1, 4);
+                    currentChannel().charge(1, 4);
                 break;
             case 2:
                 if (print)
                     display::print(F("Idle"));
                 else
-                    BatteryChannel::channels[currentChannel].idle();
+                    currentChannel().idle();
                 break;
             case 3:
                 if (print)
@@ -200,6 +308,15 @@ namespace controller
         if (utils::now() - lastDisplayUpdate > 500)
             updateDisplay();
 
+        int move=input::getAndResetInputEncoder();
+        if (move!=0){
+            _currentChannel+=move;
+            if (_currentChannel<0)
+            _currentChannel=0;
+            if (_currentChannel>=channelCount)
+            _currentChannel=channelCount-1;
+            updateDisplay();
+        }
         if (input::getAndResetInputEncoderClicked())
         {
             menu::enter(&channelMenu);
