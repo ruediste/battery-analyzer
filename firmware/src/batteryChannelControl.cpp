@@ -62,7 +62,7 @@ void BatteryChannelControl::loop()
                 }
                 break;
                 case Target::POWER:
-                    i = targetPower / (config().resistorSourceRefVoltage - effectiveVoltage);
+                    i = targetPower / effectiveVoltage;
                     break;
                 }
                 if (effectiveCurrent < i)
@@ -95,7 +95,7 @@ void BatteryChannelControl::loop()
                 }
                 break;
                 case Target::POWER:
-                    i = targetPower / (0 - effectiveVoltage);
+                    i = -targetPower / (config().resistorSourceRefVoltage - effectiveVoltage);
                     break;
                 }
                 if (effectiveCurrent < i)
