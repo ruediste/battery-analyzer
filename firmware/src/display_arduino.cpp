@@ -25,6 +25,8 @@ namespace display
 
   size_t print(int n) { return lcd.print(n); }
   size_t print(long n) { return lcd.print(n); }
+
+  void print(const char ch) { lcd.print(ch); }
   void clear() { lcd.clear(); }
   void setCursor(uint8_t x, uint8_t y) { lcd.setCursor(x, y); }
 }

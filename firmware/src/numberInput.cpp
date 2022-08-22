@@ -59,7 +59,7 @@ namespace numberInput
         else
         {
             display::setCursor(cursorColumn(), 1);
-            display::print(' ');
+            display::print(" ");
         }
         cursor = newPos;
         if (cursorAtDone())
@@ -75,7 +75,7 @@ namespace numberInput
         else
         {
             display::setCursor(cursorColumn(), 1);
-            display::print('^');
+            display::print("^");
         }
     }
 

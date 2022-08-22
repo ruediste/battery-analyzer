@@ -99,7 +99,7 @@ public:
             switch (target)
             {
             case BatteryChannelControl::Target::CURRENT:
-                wprintw(w, "CURRENT %f limit: %f", targetCurrent);
+                wprintw(w, "CURRENT %lf limit: %f", targetCurrent, limitVoltage);
                 break;
             case BatteryChannelControl::Target::RESISTANCE:
                 wprintw(w, "RESISTANCE %f", targetResistance);

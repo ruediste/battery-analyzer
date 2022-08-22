@@ -1,11 +1,11 @@
 #include "config.h"
 
-#if IS_ARDUINO
+#if IS_FRAMEWORK_ARDUINO
 #include "eeprom.h"
 
 namespace eeprom
 {
-    Data data
+    Data data;
     Data backData;
     void init()
     {
@@ -27,7 +27,8 @@ namespace eeprom
         uint8_t *backPtr = ((uint8_t *)&backData);
         for (int i = 0; i < sizeof(Data); i++)
         {
-            uint8_t value = ((uint8_t *)&data)[i] if (backPtr[i] != value)
+            uint8_t value = ((uint8_t *)&data)[i];
+            if (backPtr[i] != value)
             {
                 backPtr[i] = value;
                 write(i, value);

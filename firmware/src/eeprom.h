@@ -4,6 +4,10 @@
 #include "config.h"
 #include "types.h"
 
+#if IS_FRAMEWORK_ARDUINO
+#include <EEPROM.h>
+#endif
+
 namespace eeprom
 {
     struct ChannelConfig
@@ -36,9 +40,7 @@ namespace eeprom
     extern Data data;
 
 #if IS_FRAMEWORK_ARDUINO
-#include "eeprom.h"
 
-#include <EEPROM.h>
     inline uint8_t read(int idx)
     {
         return EEPROM.read(idx);
