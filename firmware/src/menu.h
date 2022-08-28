@@ -15,7 +15,7 @@ namespace menu
     /**
      * enter the given menu
      * */
-    void enter(MenuHandler *handler);
+    void enter(MenuHandler &handler);
 
     /**
      * Leave the menu. The enter() and leave() calls do not have to be paired.

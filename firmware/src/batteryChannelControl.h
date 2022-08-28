@@ -24,13 +24,12 @@ class BatteryChannelControl
     bool lastStepWasIncrease = false;
     float stepSize = 0;
 
-
-    uint16_t zeroOutputCurrentPWM(){
-        return BatteryChannelHal::MAX_PWM/2;
+    uint16_t zeroOutputCurrentPWM()
+    {
+        return BatteryChannelHal::MAX_PWM / 2;
     }
 
 public:
-    
     enum class Mode
     {
         IDLE,
@@ -49,7 +48,7 @@ public:
     Target target = Target::CURRENT;
 
     float effectiveVoltage = 0;
-    uint16_t effectiveVoltageRaw=0;
+    uint16_t effectiveVoltageRaw = 0;
 
     float effectiveCurrent = 0;
     uint16_t outputCurrentPWM = 0;
@@ -65,8 +64,9 @@ public:
     {
     }
 
-    eeprom::ChannelConfig &config(){
-        return eeprom::data.channel[hal.channel];
+    eeprom::ChannelConfig &config()
+    {
+        return eeprom::data.channelConfig[hal.channel];
     }
 
     void idle()
@@ -99,7 +99,7 @@ public:
             switch (target)
             {
             case BatteryChannelControl::Target::CURRENT:
-                wprintw(w, "CURRENT %lf limit: %f", targetCurrent, limitVoltage);
+                wprintw(w, "CURRENT %lf", targetCurrent);
                 break;
             case BatteryChannelControl::Target::RESISTANCE:
                 wprintw(w, "RESISTANCE %f", targetResistance);
@@ -110,8 +110,7 @@ public:
             }
         }
 
-        wprintw(w, " limitVoltage: %f outputCurrent: %i stepSize: %f",
-                limitVoltage, outputCurrentPWM,stepSize);
+        wprintw(w, " limitVoltage: %f stepSize: %f pwm: %i", limitVoltage, stepSize, outputCurrentPWM);
         wprintw(w, " HAL: voltage: %f capacity: %f pwm: %i current: %f\n",
                 hal.voltage, hal.capacity, hal.outputPWM, hal.outputCurrent);
         wrefresh(w);

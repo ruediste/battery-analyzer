@@ -25,7 +25,7 @@ namespace eeprom
             ((uint8_t *)&data)[i] = buffer[i];
         }
 
-        if (data.magic!=MAGIC)
+        if (data.magic!=MAGIC || data.version!=VERSION)
         {
             data=Data();
             flush();

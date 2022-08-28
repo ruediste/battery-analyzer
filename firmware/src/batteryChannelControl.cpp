@@ -11,13 +11,12 @@ void BatteryChannelControl::loop()
         nextUpdate = now + 100;
 
         // read back the voltage
-        effectiveVoltageRaw=hal.readVoltage();
+        effectiveVoltageRaw = hal.readVoltage();
         effectiveVoltage = effectiveVoltageRaw * config().adcRefVoltage / 0xFFFF;
 
         // calculate the effective current flowing
         {
-            
-            float roundedOutputCurrent = ((int32_t)outputCurrentPWM-config().zeroOutputPwm)/config().pwmFactor;
+            float roundedOutputCurrent = ((int32_t)outputCurrentPWM - config().zeroOutputPwm) / config().pwmFactor;
 
             // calculate the required voltage on the other side of the shunt
             float shuntInput = effectiveVoltage + roundedOutputCurrent * config().shuntResistance;
@@ -115,7 +114,11 @@ void BatteryChannelControl::loop()
             else
                 stepSize /= 2;
             stepSize = max(stepSize, 1.f); // by one step minimum
-            outputCurrentPWM += stepSize;
+            int32_t tmp = outputCurrentPWM + stepSize;
+            if (tmp >= BatteryChannelHal::MAX_PWM)
+                outputCurrentPWM = BatteryChannelHal::MAX_PWM;
+            else
+                outputCurrentPWM = tmp;
         }
         else
         {
@@ -124,7 +127,11 @@ void BatteryChannelControl::loop()
             else
                 stepSize *= 1.41;
             stepSize = max(stepSize, 1.f); // by one step minimum
-            outputCurrentPWM -= stepSize;  // TODO: handle overflow
+            int32_t tmp = outputCurrentPWM - stepSize;
+            if (tmp < 0)
+                outputCurrentPWM = 0;
+            else
+                outputCurrentPWM = tmp;
         }
         lastStepWasIncrease = increaseCurrent;
 

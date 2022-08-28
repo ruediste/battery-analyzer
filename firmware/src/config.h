@@ -3,8 +3,8 @@
 
 #include "macros.h"
 
-const int displayCols=20;
-const int displayRows=4;
+const int displayCols = 20;
+const int displayRows = 4;
 
-const int channelCount=2;
+const int channelCount = 1;
 #endif

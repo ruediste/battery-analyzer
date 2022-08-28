@@ -11,14 +11,14 @@ class BatteryChannelHal
 public:
     uint8_t channel;
 #if IS_FRAMEWORK_NATIVE
-    uint16_t outputPWM=0;
-    float outputCurrent=0;
-    float voltage=3.7;
-    float capacity=1000; // in ampere-seconds/volt
-    instantMs_t lastLoop=0;
+    uint16_t outputPWM = 0;
+    float outputCurrent = 0;
+    float voltage = 3.7;
+    float capacity = 10; // in ampere-seconds/volt
+    instantMs_t lastLoop = 0;
 #endif
 
-    static const uint16_t MAX_PWM=0x0FFF;
+    static const uint16_t MAX_PWM = 0x0FFF;
 
     BatteryChannelHal(uint8_t channel)
     {

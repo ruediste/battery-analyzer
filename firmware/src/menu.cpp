@@ -43,10 +43,10 @@ namespace menu
         }
     }
 
-    void enter(MenuHandler *handler)
+    void enter(MenuHandler &handler)
     {
-        currentMenuItemCount = handler->menuItemCount();
-        currentHandler = handler;
+        currentMenuItemCount = handler.menuItemCount();
+        currentHandler = &handler;
         pos = 0;
         scroll = 0;
         displayedScroll = -1;
