@@ -12,9 +12,8 @@ namespace numberInput
     uint32_t value;
     int cursor = 0;
     bool editing;
-    void (*success)(uint32_t value);
-    void (*cancel)();
-    void (*print)();
+
+    Callbacks callbacks;
 
     int cursorColumn()
     {
@@ -96,22 +95,25 @@ namespace numberInput
             display::print((char)('0' + (tmp % 10)));
             tmp /= 10;
         }
+
+        if (callbacks.valueChanged != NULL)
+            callbacks.valueChanged(value);
     }
 
-    void enter(uint32_t initialValue, int digits, int fraction, void (*success)(uint32_t value), void (*cancel)(), void (*print)())
+    void enter(uint32_t initialValue, int digits, int fraction, void (*setup)(Callbacks &callbacks))
     {
+        callbacks = Callbacks();
+        setup(callbacks);
+
         numberInput::value = initialValue;
         numberInput::digits = digits;
         numberInput::fraction = fraction;
-        numberInput::success = success;
-        numberInput::cancel = cancel;
-        numberInput::print=print;
 
         display::clear();
 
         printValue();
 
-        cursor = digits + fraction-1;
+        cursor = digits + fraction - 1;
         isActive = true;
         editing = false;
 
@@ -120,9 +122,9 @@ namespace numberInput
         display::setCursor(cursorCancelColumn(), 0);
         display::print(F("CA"));
 
-        moveCursor(cursor); 
-        display::setCursor(0,3);
-        print();
+        moveCursor(cursor);
+        display::setCursor(0, 3);
+        callbacks.print();
     }
 
     bool active()
@@ -130,16 +132,17 @@ namespace numberInput
         return isActive;
     }
 
-    instantMs_t nextPrint=0;
+    instantMs_t nextPrint = 0;
     void loop()
     {
         if (!isActive)
             return;
-        instantMs_t now=utils::now();
-        if (now>nextPrint){
-            nextPrint=now+500;
-            display::setCursor(0,3);
-            print();
+        instantMs_t now = utils::now();
+        if (now > nextPrint)
+        {
+            nextPrint = now + 500;
+            display::setCursor(0, 3);
+            callbacks.print();
         }
         int move = input::getAndResetInputEncoder();
         if (move != 0)
@@ -163,7 +166,7 @@ namespace numberInput
                 if (newPos < 0)
                     newPos = 0;
                 if (newPos > digits + fraction + 1)
-                    newPos = digits + fraction+1;
+                    newPos = digits + fraction + 1;
 
                 moveCursor(newPos);
             }
@@ -173,12 +176,12 @@ namespace numberInput
             if (cursorAtDone())
             {
                 isActive = false;
-                success(value);
+                callbacks.success(value);
             }
             if (cursorAtCancel())
             {
                 isActive = false;
-                cancel();
+                callbacks.cancel();
             }
             editing = !editing;
         }

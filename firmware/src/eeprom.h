@@ -34,6 +34,7 @@ namespace eeprom
         Resistor_Sink,
         Power_Source,
         Power_Sink,
+        Direct_PWM
     };
 
     enum class ChargeMode
@@ -57,6 +58,8 @@ namespace eeprom
 
         float targetResistance = 0; // ohm
         float targetPower = 0;      // watts
+
+        uint16_t directPWM = 0;
     };
 
     const uint16_t MAGIC = 0xE5E7;

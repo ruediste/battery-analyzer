@@ -35,6 +35,7 @@ public:
         IDLE,
         SOURCE,
         SINK,
+        DIRECT_PWM
     };
 
     enum class Target
@@ -56,6 +57,8 @@ public:
     float targetCurrent = 0;    // amps
     float targetResistance = 0; // ohm
     float targetPower = 0;      // watts
+
+    uint16_t targetDirectPWM = 0;
 
     float limitVoltage = 0;
 

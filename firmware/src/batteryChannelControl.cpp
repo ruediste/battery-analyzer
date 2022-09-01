@@ -38,6 +38,12 @@ void BatteryChannelControl::loop()
             hal.setOutputPWM(outputCurrentPWM);
             return; // exit method, we're done
 
+        case BatteryChannelControl::Mode::DIRECT_PWM:
+            stepSize = 1;
+            outputCurrentPWM = targetDirectPWM;
+            hal.setOutputPWM(outputCurrentPWM);
+            return; // exit method, we're done
+
         case Mode::SOURCE:
         {
             if (effectiveCurrent < 0)
