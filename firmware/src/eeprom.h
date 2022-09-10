@@ -34,7 +34,7 @@ namespace eeprom
         Resistor_Sink,
         Power_Source,
         Power_Sink,
-        Direct_PWM
+        Direct_PWM,
     };
 
     enum class ChargeMode
@@ -42,6 +42,47 @@ namespace eeprom
         Charge,
         Discharge,
         Idle
+    };
+
+    enum class TestState
+    {
+        // At the start of the test cycle, the battery has to charge for at least 30 seconds before the charge current drops to the
+        // charge cutoff current. If charging completes before that, the PreDischarge state is entered. Otherwise the discharge starts
+        PreCharge,
+
+        // The battery voltage is too high. The battery is discharged (typically for 2 Minutes), before another PreCharge attempt is made
+        PreDischarge,
+
+        // The battery is being discharged. In the middle of the discharge, the discharge voltage delta (dischargeDU) is measured
+        Discharge,
+
+        // The battery is being charged. In the middle of the discharge, the charge voltage delta (chargeDU) is measured
+        Charge,
+    };
+
+    struct Statistics
+    {
+        float ampereSeconds;
+
+        float milliAmperHours()
+        {
+            return ampereSeconds * 1000 / 3600;
+        }
+        float wattSeconds;
+
+        float wattHours()
+        {
+            return wattSeconds / 3600;
+        }
+
+        float seconds;
+
+        void reset()
+        {
+            ampereSeconds = 0;
+            wattSeconds = 0;
+            seconds = 0;
+        }
     };
 
     struct ChannelSetup
@@ -60,6 +101,13 @@ namespace eeprom
         float targetPower = 0;      // watts
 
         uint16_t directPWM = 0;
+
+        Statistics stats;
+
+        Statistics dischargeStats;
+
+        float dischargeDU;
+        float chargeDU;
     };
 
     const uint16_t MAGIC = 0xE5E7;
@@ -72,6 +120,12 @@ namespace eeprom
 
         // minimum input voltage to assume (used for max current calculation)
         float minInputVoltage = 5.f;
+
+        float chargeVoltage = 4;
+        float chargeCurrent = 1;
+        float chargeCutoffCurrent = 0.5;
+        float dischargeVoltage = 3.2;
+        float dischargeCurrent = 1;
 
         ChannelConfig channelConfig[channelCount];
         ChannelSetup channelSetup[channelCount];

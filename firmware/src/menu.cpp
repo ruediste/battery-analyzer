@@ -61,10 +61,11 @@ namespace menu
         currentHandler = NULL;
     }
 
-    bool active(){
-        return currentHandler!=NULL;
+    bool active()
+    {
+        return currentHandler != NULL;
     }
-    
+
     void loop()
     {
         if (!active())
@@ -75,9 +76,9 @@ namespace menu
         {
             tmp += scroll + pos;
             if (tmp < 0)
-                tmp = 0;
-            else if (tmp >= currentMenuItemCount)
                 tmp = currentMenuItemCount - 1;
+            else if (tmp >= currentMenuItemCount)
+                tmp = 0;
             scroll = (tmp / 4) * 4;
             pos = tmp - scroll;
             updateDisplay();

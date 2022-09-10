@@ -12,6 +12,8 @@ namespace controller
 {
     int _currentChannel = 0;
 
+    bool showStatistics = false;
+
     instantMs_t lastDisplayUpdate = 0;
 
     eeprom::ChannelSetup &currentChannelSetup()
@@ -65,6 +67,23 @@ namespace controller
             break;
         }
 
+        if (showStatistics)
+        {
+            display::setCursor(0, 1);
+            display::print(currentChannelSetup().stats.milliAmperHours());
+            display::print(F(" mAH"));
+
+            display::setCursor(0, 2);
+            display::print(currentChannelSetup().stats.wattHours());
+            display::print(F(" WH"));
+
+            display::setCursor(0, 3);
+            display::print(F("Time "));
+            display::print(currentChannelSetup().stats.seconds);
+            display::print(F(" s"));
+            return;
+        }
+
         BatteryChannel &c = BatteryChannel::channels[_currentChannel];
         display::setCursor(0, 1);
         display::print(F("U "));
@@ -72,11 +91,32 @@ namespace controller
         display::print(F(" I "));
         display::print(c.effectiveCurrent());
 
+        display::setCursor(0, 2);
+        display::print(F("mAH "));
+        display::print(currentChannelSetup().stats.milliAmperHours());
+
         if (currentChannelSetup().mode == eeprom::ChannelMode::Direct_PWM)
         {
-            display::setCursor(0, 2);
+            display::setCursor(0, 3);
             display::print(F("PWM "));
             display::print(currentChannel().control.outputCurrentPWM);
+        }
+
+        if (currentChannelSetup().mode == eeprom::ChannelMode::Charger)
+        {
+            display::setCursor(0, 3);
+            switch (currentChannelSetup().chargeMode)
+            {
+            case eeprom::ChargeMode::Charge:
+                display::print(F("Charging"));
+                break;
+            case eeprom::ChargeMode::Discharge:
+                display::print(F("Discharging"));
+                ;
+                break;
+            case eeprom::ChargeMode::Idle:
+                display::print(F("Idle"));
+            }
         }
 
         lastDisplayUpdate = utils::now();
@@ -84,59 +124,12 @@ namespace controller
 
     void enterChannelMenu();
     void enterChannelConfigMenu();
-
-    void updateCurrentChannel()
-    {
-        switch (currentChannelSetup().mode)
-        {
-        case eeprom::ChannelMode::Charger:
-            break;
-        case eeprom::ChannelMode::CV_CC_Source:
-            if (currentChannelSetup().enabled)
-            {
-                currentChannel().control.target = BatteryChannelControl::Target::CURRENT;
-                currentChannel().control.targetCurrent = currentChannelSetup().targetCurrent;
-                currentChannel().control.limitVoltage = currentChannelSetup().limitVoltage;
-                currentChannel().control.mode = BatteryChannelControl::Mode::SOURCE;
-            }
-            else
-            {
-                currentChannel().control.mode = BatteryChannelControl::Mode::IDLE;
-            }
-            break;
-        case eeprom::ChannelMode::CV_CC_Sink:
-            if (currentChannelSetup().enabled)
-            {
-                currentChannel().control.target = BatteryChannelControl::Target::CURRENT;
-                currentChannel().control.targetCurrent = -currentChannelSetup().targetCurrent;
-                currentChannel().control.limitVoltage = currentChannelSetup().limitVoltage;
-                currentChannel().control.mode = BatteryChannelControl::Mode::SINK;
-            }
-            else
-            {
-                currentChannel().control.mode = BatteryChannelControl::Mode::IDLE;
-            }
-            break;
-        case eeprom::ChannelMode::Resistor_Source:
-            break;
-        case eeprom::ChannelMode::Resistor_Sink:
-            break;
-        case eeprom::ChannelMode::Power_Source:
-            break;
-        case eeprom::ChannelMode::Power_Sink:
-            break;
-        case eeprom::ChannelMode::Direct_PWM:
-            currentChannel().control.mode = BatteryChannelControl::Mode::DIRECT_PWM;
-            currentChannel().control.targetDirectPWM = currentChannelSetup().directPWM;
-            break;
-        }
-    }
+    void enterGlobalConfigMenu();
 
     void setChannelMode(eeprom::ChannelMode mode)
     {
         currentChannelSetup().mode = mode;
         eeprom::flush();
-        updateCurrentChannel();
         menu::leave();
     }
 
@@ -165,13 +158,21 @@ namespace controller
                 break;
             case 2:
                 if (print)
+                    display::print(F("Direct PWM"));
+                else
+                {
+                    setChannelMode(eeprom::ChannelMode::Direct_PWM);
+                }
+                break;
+            case 3:
+                if (print)
                     display::print(F("CVCC Sink"));
                 else
                 {
                     setChannelMode(eeprom::ChannelMode::CV_CC_Sink);
                 }
                 break;
-            case 3:
+            case 4:
                 if (print)
                     display::print(F("Resistor Source"));
                 else
@@ -179,7 +180,7 @@ namespace controller
                     setChannelMode(eeprom::ChannelMode::Resistor_Source);
                 }
                 break;
-            case 4:
+            case 5:
                 if (print)
                     display::print(F("Resistor Sink"));
                 else
@@ -187,7 +188,7 @@ namespace controller
                     setChannelMode(eeprom::ChannelMode::Resistor_Sink);
                 }
                 break;
-            case 5:
+            case 6:
                 if (print)
                     display::print(F("Power Source"));
                 else
@@ -195,7 +196,7 @@ namespace controller
                     setChannelMode(eeprom::ChannelMode::Power_Source);
                 }
                 break;
-            case 6:
+            case 7:
                 if (print)
                     display::print(F("Power Sink"));
                 else
@@ -203,14 +204,7 @@ namespace controller
                     setChannelMode(eeprom::ChannelMode::Power_Sink);
                 }
                 break;
-            case 7:
-                if (print)
-                    display::print(F("Direct PWM"));
-                else
-                {
-                    setChannelMode(eeprom::ChannelMode::Direct_PWM);
-                }
-                break;
+
             case 8:
                 if (print)
                     display::print(F("..."));
@@ -232,16 +226,102 @@ namespace controller
 
     struct GlobalConfigMenu : public menu::MenuHandler
     {
-        uint8_t menuItemCount() override
-        {
-            return 2;
-        }
 
         void handleMenu(uint8_t i, bool print) override
         {
             switch (i)
             {
             case 0:
+                if (print)
+                    display::print(F("Charge Voltage"));
+                else
+                {
+                    menu::leave();
+                    numberInput::enter(
+                        eeprom::data.chargeVoltage * 100, 2, 2, [](auto &c)
+                        {
+                        c.success = [](uint32_t value)
+                        {
+                            eeprom::data.chargeVoltage=value/100;
+                            eeprom::flush();
+                            enterGlobalConfigMenu(); 
+                        };
+                        c.cancel =[]{enterGlobalConfigMenu(); }; });
+                }
+                break;
+            case 1:
+                if (print)
+                    display::print(F("Charge Current"));
+                else
+                {
+                    menu::leave();
+                    numberInput::enter(
+                        eeprom::data.chargeCurrent * 100, 2, 2, [](auto &c)
+                        {
+                        c.success = [](uint32_t value)
+                        {
+                            eeprom::data.chargeCurrent=value/100;
+                            eeprom::flush();
+                            enterGlobalConfigMenu(); 
+                        };
+                        c.cancel =[]{enterGlobalConfigMenu(); }; });
+                }
+                break;
+            case 2:
+                if (print)
+                    display::print(F("Ch Cutoff Current"));
+                else
+                {
+                    menu::leave();
+                    numberInput::enter(
+                        eeprom::data.chargeCutoffCurrent * 100, 2, 2, [](auto &c)
+                        {
+                        c.success = [](uint32_t value)
+                        {
+                            eeprom::data.chargeCutoffCurrent=value/100;
+                            eeprom::flush();
+                            enterGlobalConfigMenu(); 
+                        };
+                        c.cancel =[]{enterGlobalConfigMenu(); }; });
+                }
+                break;
+            case 3:
+                if (print)
+                    display::print(F("Discharge Voltage"));
+                else
+                {
+                    menu::leave();
+                    numberInput::enter(
+                        eeprom::data.dischargeVoltage * 100, 2, 2, [](auto &c)
+                        {
+                        c.success = [](uint32_t value)
+                        {
+                            eeprom::data.dischargeVoltage=value/100;
+                            eeprom::flush();
+                            enterGlobalConfigMenu(); 
+                        };
+                        c.cancel =[]{enterGlobalConfigMenu(); }; });
+                }
+                break;
+            case 4:
+                if (print)
+                    display::print(F("Discharge Current"));
+                else
+                {
+                    menu::leave();
+                    numberInput::enter(
+                        eeprom::data.dischargeCurrent * 100, 2, 2, [](auto &c)
+                        {
+                        c.success = [](uint32_t value)
+                        {
+                            eeprom::data.dischargeCurrent=value/100;
+                            eeprom::flush();
+                            enterGlobalConfigMenu(); 
+                        };
+                        c.cancel =[]{enterGlobalConfigMenu(); }; });
+                }
+                break;
+            case 5:
                 if (print)
                     display::print(F("Reset EEPROM"));
                 else
@@ -250,7 +330,7 @@ namespace controller
                     eeprom::flush();
                 }
                 break;
-            case 1:
+            case 6:
                 if (print)
                     display::print(F("..."));
                 else
@@ -260,9 +340,18 @@ namespace controller
                 break;
             }
         }
+
+        uint8_t menuItemCount() override
+        {
+            return 7;
+        }
     };
 
     GlobalConfigMenu globalConfigMenu;
+    void enterGlobalConfigMenu()
+    {
+        menu::enter(globalConfigMenu);
+    }
 
     struct ChannelConfigMenu : public menu::MenuHandler
     {
@@ -429,6 +518,14 @@ namespace controller
                 break;
             case 1:
                 if (print)
+                    display::print(F("Show Statistics"));
+                else
+                {
+                    showStatistics = true;
+                }
+                break;
+            case 2:
+                if (print)
                     display::print(F("Configure"));
                 else
                 {
@@ -436,7 +533,15 @@ namespace controller
                     return true;
                 }
                 break;
-            case 2:
+            case 3:
+                if (print)
+                    display::print(F("Reset Statistics"));
+                else
+                {
+                    currentChannelSetup().stats.reset();
+                }
+                break;
+            case 4:
                 if (print)
                     display::print(F("..."));
                 break;
@@ -447,7 +552,7 @@ namespace controller
 
         uint8_t menuItemCount()
         {
-            return 3;
+            return 5;
         }
     };
 
@@ -464,19 +569,25 @@ namespace controller
                 if (print)
                     display::print(F("Discharge"));
                 else
-                    currentChannel().discharge(1, 3);
+                {
+                    currentChannelSetup().chargeMode = eeprom::ChargeMode::Discharge;
+                }
                 break;
             case 1:
                 if (print)
                     display::print(F("Charge"));
                 else
-                    currentChannel().charge(1, 4);
+                {
+                    currentChannelSetup().chargeMode = eeprom::ChargeMode::Charge;
+                }
                 break;
             case 2:
                 if (print)
                     display::print(F("Idle"));
                 else
-                    currentChannel().idle();
+                {
+                    currentChannelSetup().chargeMode = eeprom::ChargeMode::Idle;
+                }
                 break;
             default:
                 if (modeMenuSuffix.handleMenu(i, menuItemCount(), print))
@@ -518,7 +629,6 @@ namespace controller
                 {
                     currentChannelSetup().enabled = !currentChannelSetup().enabled;
                     eeprom::flush();
-                    updateCurrentChannel();
                 }
                 break;
             case 1:
@@ -531,9 +641,9 @@ namespace controller
                         currentChannelSetup().targetCurrent * 1000, 2, 3, [](auto &c)
                         { c.success = [](uint32_t value)
                           {
-                            currentChannelSetup().targetCurrent=value/1000.;
-                            eeprom::flush(); 
-                            updateCurrentChannel(); }; });
+                              currentChannelSetup().targetCurrent = value / 1000.;
+                              eeprom::flush();
+                          }; });
                     return;
                 }
                 break;
@@ -547,9 +657,9 @@ namespace controller
                         currentChannelSetup().limitVoltage * 1000, 2, 3, [](auto &c)
                         { c.success = [](uint32_t value)
                           {
-                            currentChannelSetup().limitVoltage=value/1000.;
-                            eeprom::flush(); 
-                            updateCurrentChannel(); }; });
+                              currentChannelSetup().limitVoltage = value / 1000.;
+                              eeprom::flush();
+                          }; });
                     return;
                 }
                 break;
@@ -596,12 +706,19 @@ namespace controller
                             {
                             currentChannelSetup().directPWM = value;
                             eeprom::flush();
-                            updateCurrentChannel(); };
+                            };
 
-                            c.valueChanged= [](uint32_t value){
+                            c.valueChanged = [](uint32_t value)
+                            {
                                 currentChannelSetup().directPWM = value;
                                 eeprom::flush();
-                                updateCurrentChannel();
+                               
+                            };
+
+                            c.print = []()
+                            {
+                                display::print(F("I "));
+                                display::print(currentChannel().effectiveCurrent());
                             }; });
                     return;
                 }
@@ -673,14 +790,15 @@ namespace controller
         case eeprom::ChannelMode::CV_CC_Sink:
             menu::enter(cvCCModeMenu);
             break;
+        case eeprom::ChannelMode::Direct_PWM:
+            menu::enter(directPwmModeMenu);
+            break;
         case eeprom::ChannelMode::Resistor_Source:
         case eeprom::ChannelMode::Resistor_Sink:
         case eeprom::ChannelMode::Power_Source:
         case eeprom::ChannelMode::Power_Sink:
+        default:
             menu::enter(fallbackModeMenu);
-            break;
-        case eeprom::ChannelMode::Direct_PWM:
-            menu::enter(directPwmModeMenu);
             break;
         }
     }
@@ -695,11 +813,6 @@ namespace controller
         for (int i = 0; i < channelCount; i++)
         {
             _currentChannel = i;
-            if (currentChannelSetup().mode > eeprom::ChannelMode::Power_Sink)
-            {
-                currentChannelSetup().mode = eeprom::ChannelMode::Charger;
-            }
-            updateCurrentChannel();
         }
         _currentChannel = 0;
     }
@@ -709,13 +822,26 @@ namespace controller
         input::loop();
         menu::loop();
         numberInput::loop();
-        BatteryChannel::loop();
+        for (int i = 0; i < channelCount; i++)
+        {
+            BatteryChannel::channels[i].loop();
+        }
 
         if (menu::active() || numberInput::active())
             return;
 
         if (utils::now() - lastDisplayUpdate > 500)
             updateDisplay();
+
+        if (showStatistics)
+        {
+            if (input::getAndResetInputEncoderClicked())
+            {
+                input::getAndResetInputEncoder();
+                showStatistics = false;
+            }
+            return;
+        }
 
         int move = input::getAndResetInputEncoder();
         if (move != 0)

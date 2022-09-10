@@ -72,6 +72,11 @@ public:
         return eeprom::data.channelConfig[hal.channel];
     }
 
+    eeprom::ChannelSetup &setup()
+    {
+        return eeprom::data.channelSetup[hal.channel];
+    }
+
     void idle()
     {
         this->mode = BatteryChannelControl::Mode::IDLE;

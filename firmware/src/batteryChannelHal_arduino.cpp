@@ -63,12 +63,32 @@ void BatteryChannelHal::init()
 #if IS_STM
 void BatteryChannelHal::setOutputPWM(uint16_t value)
 {
-    analogWrite(PA8, value);
+    switch (channel)
+    {
+    case 0:
+        analogWrite(PA8, value);
+        break;
+    case 1:
+        analogWrite(PA9, value);
+
+    default:
+        break;
+    }
 }
 
 uint16_t BatteryChannelHal::readVoltage()
 {
-    return analogRead(PA0);
+    switch (channel)
+    {
+    case 0:
+        return analogRead(PA0);
+        break;
+    case 1:
+        return analogRead(PA1);
+
+    default:
+        return 0;
+    }
 }
 
 void BatteryChannelHal::init()
@@ -77,7 +97,9 @@ void BatteryChannelHal::init()
     analogWriteResolution(12);
     analogReadResolution(16);
     pinMode(PA0, INPUT_ANALOG);
+    pinMode(PA1, INPUT_ANALOG);
     pinMode(PA8, OUTPUT);
+    pinMode(PA9, OUTPUT);
 }
 #endif
 #endif

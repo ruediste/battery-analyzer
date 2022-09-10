@@ -20,6 +20,11 @@
         "numeric": "cpp",
         "sstream": "cpp",
         "string": "cpp",
-        "string_view": "cpp"
+        "string_view": "cpp",
+        "vector": "cpp",
+        "exception": "cpp",
+        "hash_map": "cpp",
+        "deque": "cpp",
+        "list": "cpp"
     }
 }

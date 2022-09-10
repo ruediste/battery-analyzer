@@ -9,15 +9,27 @@ A battery channel controls the charge/discharge process and keeps track of the s
 */
 class BatteryChannel
 {
+    instantMs_t lastStatisticsLoop = utils::now();
+    instantMs_t lastEepromFlush = utils::now();
+
+    eeprom::ChargeMode appliedChargeMode = eeprom::ChargeMode::Idle;
+    instantMs_t lastChargeModeChange = utils::now();
 
 public:
     BatteryChannelControl control;
 
     BatteryChannel(int channel = -1) : control(channel) {}
-    
-    eeprom::ChannelConfig &config(){
+
+    eeprom::ChannelConfig &config()
+    {
         return eeprom::data.channelConfig[control.hal.channel];
     }
+
+    eeprom::ChannelSetup &setup()
+    {
+        return eeprom::data.channelSetup[control.hal.channel];
+    }
+
     void idle() { this->control.idle(); }
     void charge(float current, float limit)
     {
@@ -44,13 +56,7 @@ public:
         return control.effectiveCurrent;
     }
 
-    static void loop()
-    {
-        for (int i = 0; i < channelCount; i++)
-        {
-            channels[i].control.loop();
-        }
-    }
+    void loop();
 
     static BatteryChannel channels[];
     static void init();

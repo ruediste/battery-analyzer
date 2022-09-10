@@ -6,5 +6,9 @@
 const int displayCols = 20;
 const int displayRows = 4;
 
+#if IS_FRAMEWORK_NATIVE
 const int channelCount = 1;
+#else
+const int channelCount = 2;
+#endif
 #endif
