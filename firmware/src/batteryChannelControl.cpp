@@ -11,22 +11,25 @@ void BatteryChannelControl::loop()
         nextUpdate = now + 100;
 
         // read back the voltage
-        effectiveVoltageRaw = hal.readVoltage();
-        effectiveVoltage = effectiveVoltageRaw * config().adcRefVoltage / 0xFFFF;
+        measuredVoltageRaw = hal.readVoltage();
+        measuredVoltage = measuredVoltageRaw * config().adcRefVoltage / 0xFFFF;
 
         // calculate the effective current flowing
         {
             float roundedOutputCurrent = ((int32_t)outputCurrentPWM - config().zeroOutputPwm) / config().pwmFactor;
 
             // calculate the required voltage on the other side of the shunt
-            float shuntInput = effectiveVoltage + roundedOutputCurrent * config().shuntResistance;
+            float shuntInput = measuredVoltage + roundedOutputCurrent * config().shuntResistance;
 
             // limit the voltage to 0..inputVoltage
             shuntInput = max(0.f, min(eeprom::data.minInputVoltage, shuntInput));
 
             // calculate the current with the limited input voltage
-            effectiveCurrent = (shuntInput - effectiveVoltage) / config().shuntResistance;
+            effectiveCurrent = (shuntInput - measuredVoltage) / config().shuntResistance;
         }
+
+        // calculate the battery voltage
+        batteryVoltage = measuredVoltage - effectiveCurrent * config().connectionResistance;
 
         // adjst the target current based on the mode
         bool increaseCurrent = false;
@@ -48,7 +51,7 @@ void BatteryChannelControl::loop()
         {
             if (effectiveCurrent < 0)
                 increaseCurrent = true;
-            else if (effectiveVoltage > limitVoltage)
+            else if (batteryVoltage > limitVoltage)
                 increaseCurrent = false;
             else
             {
@@ -63,11 +66,11 @@ void BatteryChannelControl::loop()
 
                 case Target::RESISTANCE:
                 {
-                    i = (config().resistorSourceRefVoltage - effectiveVoltage) / targetResistance;
+                    i = (config().resistorSourceRefVoltage - batteryVoltage) / targetResistance;
                 }
                 break;
                 case Target::POWER:
-                    i = targetPower / effectiveVoltage;
+                    i = targetPower / batteryVoltage;
                     break;
                 }
                 if (effectiveCurrent < i)
@@ -81,7 +84,7 @@ void BatteryChannelControl::loop()
         {
             if (effectiveCurrent > 0)
                 increaseCurrent = false;
-            else if (effectiveVoltage < limitVoltage)
+            else if (batteryVoltage < limitVoltage)
                 increaseCurrent = true;
             else
             {
@@ -96,11 +99,11 @@ void BatteryChannelControl::loop()
 
                 case Target::RESISTANCE:
                 {
-                    i = (0 - effectiveVoltage) / targetResistance;
+                    i = (0 - batteryVoltage) / targetResistance;
                 }
                 break;
                 case Target::POWER:
-                    i = -targetPower / (config().resistorSourceRefVoltage - effectiveVoltage);
+                    i = -targetPower / (config().resistorSourceRefVoltage - batteryVoltage);
                     break;
                 }
                 if (effectiveCurrent < i)

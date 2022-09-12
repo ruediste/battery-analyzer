@@ -27,7 +27,7 @@ void BatteryChannel::loop()
         setup().stats.seconds += elapsedSeconds;
         float elapsedAS = elapsedSeconds * control.effectiveCurrent;
         setup().stats.ampereSeconds += elapsedAS;
-        setup().stats.wattSeconds += elapsedAS * control.effectiveVoltage;
+        setup().stats.wattSeconds += elapsedAS * control.batteryVoltage;
     }
 
     if (now + 10000 > lastEepromFlush)
@@ -43,7 +43,6 @@ void BatteryChannel::loop()
         {
             appliedChargeMode = setup().chargeMode;
             lastChargeModeChange = now;
-            setup().stats.reset();
             switch (appliedChargeMode)
             {
             case eeprom::ChargeMode::Charge:
@@ -61,14 +60,14 @@ void BatteryChannel::loop()
         {
             if (appliedChargeMode == eeprom::ChargeMode::Charge)
             {
-                if (effectiveCurrent() < eeprom::data.chargeCutoffCurrent)
+                if (abs(effectiveCurrent()) < eeprom::data.chargeCutoffCurrent)
                 {
                     setup().chargeMode = eeprom::ChargeMode::Idle;
                 }
             }
             if (appliedChargeMode == eeprom::ChargeMode::Discharge)
             {
-                if (effectiveCurrent() < eeprom::data.dischargeCurrent * 0.9)
+                if (abs(effectiveCurrent()) < eeprom::data.dischargeCurrent * 0.9)
                 {
                     setup().chargeMode = eeprom::ChargeMode::Idle;
                 }

@@ -46,9 +46,14 @@ public:
         this->control.mode = BatteryChannelControl::Mode::SINK;
     }
 
-    float effectiveVoltage()
+    float batteryVoltage()
     {
-        return control.effectiveVoltage;
+        return control.batteryVoltage;
+    }
+
+    float measuredVoltage()
+    {
+        return control.measuredVoltage;
     }
 
     float effectiveCurrent()

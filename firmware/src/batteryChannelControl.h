@@ -48,8 +48,9 @@ public:
     Mode mode = Mode::IDLE;
     Target target = Target::CURRENT;
 
-    float effectiveVoltage = 0;
-    uint16_t effectiveVoltageRaw = 0;
+    float batteryVoltage = 0;
+    float measuredVoltage = 0;
+    uint16_t measuredVoltageRaw = 0;
 
     float effectiveCurrent = 0;
     uint16_t outputCurrentPWM = 0;
@@ -119,6 +120,7 @@ public:
         }
 
         wprintw(w, " limitVoltage: %f stepSize: %f pwm: %i", limitVoltage, stepSize, outputCurrentPWM);
+        wprintw(w, " uMeas: %f uBat: %f pwm: %i", measuredVoltage, batteryVoltage);
         wprintw(w, " HAL: voltage: %f capacity: %f pwm: %i current: %f\n",
                 hal.voltage, hal.capacity, hal.outputPWM, hal.outputCurrent);
         wrefresh(w);

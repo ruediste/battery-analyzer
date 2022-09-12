@@ -23,6 +23,9 @@ namespace eeprom
 
         // resistance to calculate the effective shunt input voltage
         float shuntResistance = 0.2;
+
+        // resistance between the voltage measurement point and the battery (plus and minus side combined)
+        float connectionResistance = 0.1;
     };
 
     enum class ChannelMode

@@ -87,7 +87,7 @@ namespace controller
         BatteryChannel &c = BatteryChannel::channels[_currentChannel];
         display::setCursor(0, 1);
         display::print(F("U "));
-        display::print(c.effectiveVoltage());
+        display::print(c.batteryVoltage());
         display::print(F(" I "));
         display::print(c.effectiveCurrent());
 
@@ -355,11 +355,6 @@ namespace controller
 
     struct ChannelConfigMenu : public menu::MenuHandler
     {
-        uint8_t menuItemCount() override
-        {
-            return 8;
-        }
-
         void handleMenu(uint8_t i, bool print) override
         {
             switch (i)
@@ -371,11 +366,11 @@ namespace controller
                 {
                     menu::leave();
                     numberInput::enter(
-                        currentChannel().effectiveVoltage() * 1000, 2, 3, [](auto &c)
+                        currentChannel().measuredVoltage() * 1000, 2, 3, [](auto &c)
                         {
                         c.success = [](uint32_t value)
                         {
-                       currentChannelConfig().adcRefVoltage=value/1000.*0xFFFF/currentChannel().control.effectiveVoltageRaw;
+                       currentChannelConfig().adcRefVoltage=value/1000.*0xFFFF/currentChannel().control.measuredVoltageRaw;
                        eeprom::flush();
                        enterChannelConfigMenu(); };
                         c.cancel =
@@ -385,7 +380,7 @@ namespace controller
                             []
                         {
                             display::print(F("Raw ADC: "));
-                            display::print(currentChannel().control.effectiveVoltageRaw);
+                            display::print(currentChannel().control.measuredVoltageRaw);
                         }; });
                 }
                 break;
@@ -427,7 +422,31 @@ namespace controller
                 break;
             case 3:
                 if (print)
-                    display::print(F("Resistor Source Ref Voltage"));
+                    display::print(F("V Bat"));
+                else
+                {
+                    menu::leave();
+                    numberInput::enter(
+                        abs(currentChannel().batteryVoltage()) * 1000, 2, 3, [](auto &c)
+                        {
+                            c.success=[](uint32_t value)                               
+                            {
+                                float batteryVoltage=value/1000.;
+                            currentChannelConfig().connectionResistance=(currentChannel().measuredVoltage()-batteryVoltage)/currentChannel().effectiveCurrent();
+                            eeprom::flush();
+                            enterChannelConfigMenu(); };
+                            c.cancel= [] { enterChannelConfigMenu(); };
+                            c.print= []{
+                                display::print(F("U: "));
+                                display::print(currentChannel().measuredVoltage());
+                                display::print(F(" I: "));
+                                display::print(currentChannel().effectiveCurrent());
+                            }; });
+                }
+                break;
+            case 4:
+                if (print)
+                    display::print(F("R Src Ref Voltage"));
                 else
                 {
                     menu::leave();
@@ -441,7 +460,7 @@ namespace controller
                             c.cancel=                                []                                { enterChannelConfigMenu(); }; });
                 }
                 break;
-            case 4:
+            case 5:
                 if (print)
                     display::print(F("Shunt Resistance"));
                 else
@@ -458,7 +477,7 @@ namespace controller
                           { enterChannelConfigMenu(); }; });
                 }
                 break;
-            case 5:
+            case 6:
                 if (print)
                     display::print(F("Min Input Voltage"));
                 else
@@ -475,7 +494,7 @@ namespace controller
                           { enterChannelConfigMenu(); }; });
                 }
                 break;
-            case 6:
+            case 7:
                 if (print)
                     display::print(F("Global"));
                 else
@@ -483,7 +502,7 @@ namespace controller
                     menu::enter(globalConfigMenu);
                 }
                 break;
-            case 7:
+            case 8:
                 if (print)
                     display::print(F("..."));
                 else
@@ -492,6 +511,11 @@ namespace controller
                 }
                 break;
             }
+        }
+
+        uint8_t menuItemCount() override
+        {
+            return 9;
         }
     };
 
