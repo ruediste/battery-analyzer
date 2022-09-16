@@ -9,21 +9,26 @@ namespace eeprom
     Data backData;
     void init()
     {
-         for (int i = 0; i < sizeof(Data); i++)
+        data = Data();
+        return;
+
+        for (int i = 0; i < sizeof(Data); i++)
         {
             ((uint8_t *)&backData)[i] = read(i);
             ((uint8_t *)&data)[i] = read(i);
         }
 
-        if (data.magic!=MAGIC || data.version!=VERSION)
+        if (data.magic != MAGIC || data.version != VERSION)
         {
-            data=Data();
+            data = Data();
             flush();
         }
     }
 
-     void flush()
+    void flush()
     {
+        return;
+
         uint8_t *backPtr = ((uint8_t *)&backData);
         for (int i = 0; i < sizeof(Data); i++)
         {
@@ -35,6 +40,8 @@ namespace eeprom
             }
         }
     }
+
+    static_assert(sizeof(Data) < 800, "Size is not correct");
 }
 
 #endif

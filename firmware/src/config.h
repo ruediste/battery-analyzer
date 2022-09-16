@@ -9,6 +9,6 @@ const int displayRows = 4;
 #if IS_FRAMEWORK_NATIVE
 const int channelCount = 1;
 #else
-const int channelCount = 2;
+const int channelCount = 8;
 #endif
 #endif

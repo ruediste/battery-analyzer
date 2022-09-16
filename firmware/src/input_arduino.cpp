@@ -42,9 +42,9 @@ namespace input
     // EXTI->RTSR |= 0b111 < 12;                             // rising trigger mask
     // EXTI->FTSR |= 0b111 < 12;                             // falling trigger mask
     // EXTI->IMR |= 0b111 < 12;                              // interrupt mask
-    attachInterrupt(digitalPinToInterrupt(PB12), processInputs, CHANGE);
-    attachInterrupt(digitalPinToInterrupt(PB13), processInputs, CHANGE);
-    attachInterrupt(digitalPinToInterrupt(PB14), processInputs, CHANGE);
+    attachInterrupt(digitalPinToInterrupt(PB5), processInputs, CHANGE);
+    attachInterrupt(digitalPinToInterrupt(PB8), processInputs, CHANGE);
+    attachInterrupt(digitalPinToInterrupt(PB9), processInputs, CHANGE);
 #endif
   }
 
@@ -97,7 +97,7 @@ namespace input
 
   void processInputs()
   {
-    uint8_t newBits = GPIOB->IDR >> 12;
+    uint8_t newBits = GPIOB->IDR >> 8;
     int8_t tmp = getMovement4x((oldBits)&0b11, (newBits)&0b11);
     if (tmp != 0)
     {
@@ -109,7 +109,7 @@ namespace input
         countInputEncoderInternal = 0;
       }
     }
-    inputEncoderPressed = (newBits & 0b100) == 0;
+    inputEncoderPressed = (GPIOB->IDR & 1 << 5) == 0;
 
     oldBits = newBits;
   }

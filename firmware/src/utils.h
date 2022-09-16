@@ -147,9 +147,9 @@ T min(T a, T b)
 #define sLOG(x) ;
 #else
 #include <avr/pgmspace.h>
-#define sLOG(x)              \
-    Serial.print(F(#x " ")); \
-    Serial.println(x);
+#define sLOG(x) \
+    // Serial.print(F(#x " ")); \
+   // Serial.println(x);
 #endif
 
 #endif

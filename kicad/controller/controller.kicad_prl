@@ -20,7 +20,7 @@
       "keepouts": false,
       "lockedItems": true,
       "otherItems": false,
-      "pads": true,
+      "pads": false,
       "text": false,
       "tracks": true,
       "vias": true,
@@ -63,7 +63,7 @@
       36
     ],
     "visible_layers": "fffffff_ffffffff",
-    "zone_display_mode": 0
+    "zone_display_mode": 1
   },
   "meta": {
     "filename": "controller.kicad_prl",

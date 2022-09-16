@@ -18,6 +18,10 @@ public:
     instantMs_t lastLoop = 0;
 #endif
 
+#if IS_STM
+    static int analogInPins[];
+    static int pwmPins[];
+#endif
     static const uint16_t MAX_PWM = 0x0FFF;
 
     BatteryChannelHal(uint8_t channel)

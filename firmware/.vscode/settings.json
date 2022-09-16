@@ -26,6 +26,8 @@
         "hash_map": "cpp",
         "deque": "cpp",
         "list": "cpp",
-        "memory": "cpp"
+        "memory": "cpp",
+        "initializer_list": "cpp",
+        "streambuf": "cpp"
     }
 }

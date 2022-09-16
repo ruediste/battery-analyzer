@@ -3,6 +3,7 @@
 
 #include "config.h"
 #include "types.h"
+#include "batteryChannelHal.h"
 
 #if IS_FRAMEWORK_ARDUINO
 #include <EEPROM.h>
@@ -65,20 +66,20 @@ namespace eeprom
 
     struct Statistics
     {
-        float ampereSeconds;
+        float ampereSeconds = 0;
 
         float milliAmperHours()
         {
             return ampereSeconds * 1000 / 3600;
         }
-        float wattSeconds;
+        float wattSeconds = 0;
 
         float wattHours()
         {
             return wattSeconds / 3600;
         }
 
-        float seconds;
+        float seconds = 0;
 
         void reset()
         {
@@ -90,12 +91,12 @@ namespace eeprom
 
     struct ChannelSetup
     {
-        ChannelMode mode;
+        ChannelMode mode = ChannelMode::Direct_PWM;
 
-        ChargeMode chargeMode;
+        ChargeMode chargeMode = ChargeMode::Idle;
 
         // not used for charger mode
-        bool enabled;
+        bool enabled = false;
 
         float targetCurrent = 0; // amps
         float limitVoltage = 0;
@@ -103,14 +104,14 @@ namespace eeprom
         float targetResistance = 0; // ohm
         float targetPower = 0;      // watts
 
-        uint16_t directPWM = 0;
+        uint16_t directPWM = BatteryChannelHal::MAX_PWM / 2;
 
         Statistics stats;
 
         Statistics dischargeStats;
 
-        float dischargeDU;
-        float chargeDU;
+        float dischargeDU = 0;
+        float chargeDU = 0;
     };
 
     const uint16_t MAGIC = 0xE5E7;

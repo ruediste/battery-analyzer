@@ -7,6 +7,7 @@
 #include "utils.h"
 #include "numberInput.h"
 #include "eeprom.h"
+#include "sdLogging.h"
 
 namespace controller
 {
@@ -100,6 +101,15 @@ namespace controller
             display::setCursor(0, 3);
             display::print(F("PWM "));
             display::print(currentChannel().control.outputCurrentPWM);
+
+            display::print(F(" SD "));
+            display::print(sdLogging::getFailure());
+
+            if (sdLogging::getFailure()!=0){
+            display::print(F(" "));
+            display::print(sdLogging::getError());
+
+            }
         }
 
         if (currentChannelSetup().mode == eeprom::ChannelMode::Charger)
@@ -833,12 +843,8 @@ namespace controller
         display::init();
         input::init();
         BatteryChannel::init();
+        sdLogging::init();
         updateDisplay();
-        for (int i = 0; i < channelCount; i++)
-        {
-            _currentChannel = i;
-        }
-        _currentChannel = 0;
     }
 
     void loop()
@@ -846,6 +852,7 @@ namespace controller
         input::loop();
         menu::loop();
         numberInput::loop();
+        sdLogging::loop();
         for (int i = 0; i < channelCount; i++)
         {
             BatteryChannel::channels[i].loop();
