@@ -419,7 +419,7 @@ void BatteryChannelHal::init()
 
   // ref
   HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_3);
-  htim2.Instance->CCR3 = 0x400;
+  htim2.Instance->CCR3 = MAX_PWM >> 1;
 
   // analogWriteFrequency(10000);
   // analogWriteResolution(12);
