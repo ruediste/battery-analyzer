@@ -28,6 +28,7 @@
         "list": "cpp",
         "memory": "cpp",
         "initializer_list": "cpp",
-        "streambuf": "cpp"
+        "streambuf": "cpp",
+        "stm32_eeprom.h": "c"
     }
 }

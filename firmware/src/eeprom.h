@@ -132,31 +132,11 @@ namespace eeprom
         float dischargeCurrent = 1;
 
         ChannelConfig channelConfig[channelCount];
-        ChannelSetup channelSetup[channelCount];
     };
 
     extern Data data;
 
-#if IS_FRAMEWORK_ARDUINO
-
-    inline uint8_t read(int idx)
-    {
-        return EEPROM.read(idx);
-    }
-
-    inline void write(int idx, uint8_t val)
-    {
-        EEPROM.write(idx, val);
-    }
-
     void init();
     void flush();
-#else
-    void init();
-    uint8_t read(int idx);
-    void write(int idx, uint8_t val);
-    void flush();
-#endif
-
 }
 #endif

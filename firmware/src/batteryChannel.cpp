@@ -30,12 +30,6 @@ void BatteryChannel::loop()
         setup().stats.wattSeconds += elapsedAS * control.batteryVoltage;
     }
 
-    if (now + 10000 > lastEepromFlush)
-    {
-        lastEepromFlush = now;
-        eeprom::flush();
-    }
-
     switch (setup().mode)
     {
     case eeprom::ChannelMode::Charger:

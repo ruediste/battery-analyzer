@@ -17,14 +17,14 @@ namespace controller
 
     instantMs_t lastDisplayUpdate = 0;
 
-    eeprom::ChannelSetup &currentChannelSetup()
-    {
-        return eeprom::data.channelSetup[_currentChannel];
-    }
-
     BatteryChannel &currentChannel()
     {
         return BatteryChannel::channels[_currentChannel];
+    }
+    eeprom::ChannelSetup &currentChannelSetup()
+    {
+        // return eeprom::data.channelSetup[_currentChannel];
+        return currentChannel().setup();
     }
 
     eeprom::ChannelConfig &currentChannelConfig()
@@ -105,10 +105,10 @@ namespace controller
             display::print(F(" SD "));
             display::print(sdLogging::getFailure());
 
-            if (sdLogging::getFailure()!=0){
-            display::print(F(" "));
-            display::print(sdLogging::getError());
-
+            if (sdLogging::getFailure() != 0)
+            {
+                display::print(F(" "));
+                display::print(sdLogging::getError());
             }
         }
 
@@ -139,7 +139,6 @@ namespace controller
     void setChannelMode(eeprom::ChannelMode mode)
     {
         currentChannelSetup().mode = mode;
-        eeprom::flush();
         menu::leave();
     }
 
@@ -662,7 +661,6 @@ namespace controller
                 else
                 {
                     currentChannelSetup().enabled = !currentChannelSetup().enabled;
-                    eeprom::flush();
                 }
                 break;
             case 1:
@@ -676,7 +674,6 @@ namespace controller
                         { c.success = [](uint32_t value)
                           {
                               currentChannelSetup().targetCurrent = value / 1000.;
-                              eeprom::flush();
                           }; });
                     return;
                 }
@@ -692,7 +689,6 @@ namespace controller
                         { c.success = [](uint32_t value)
                           {
                               currentChannelSetup().limitVoltage = value / 1000.;
-                              eeprom::flush();
                           }; });
                     return;
                 }
@@ -739,13 +735,11 @@ namespace controller
                             c.success = [](uint32_t value)
                             {
                             currentChannelSetup().directPWM = value;
-                            eeprom::flush();
                             };
 
                             c.valueChanged = [](uint32_t value)
                             {
                                 currentChannelSetup().directPWM = value;
-                                eeprom::flush();
                                
                             };
 

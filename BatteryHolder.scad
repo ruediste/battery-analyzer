@@ -5,10 +5,10 @@ period=35;
 batteryDiameter=18;
 
 // number of holder units
-units=2;
+units=4;
 
 // add slides for the battery plate/slide 
-plateSlide=true;
+plateSlide=false;
 
 // add a hole to use a screw to connect to the battery terminals
 screw=false;
