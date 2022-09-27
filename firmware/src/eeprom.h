@@ -14,7 +14,6 @@ namespace eeprom
     struct ChannelConfig
     {
         float adcRefVoltage = 6.6;
-        uint16_t zeroOutputPwm = 0x7FF;
 
         // multiply current (A) with factor to get PWM value
         float pwmFactor = 0x0FFF / 4;
@@ -27,6 +26,16 @@ namespace eeprom
 
         // resistance between the voltage measurement point and the battery (plus and minus side combined)
         float connectionResistance = 0.1;
+
+        float zeroOutputPwmVoltageHigh = 4.2;
+        float zeroOutputPwmVoltageLow = 2.8;
+        uint16_t zeroOutputPwmHigh = 0x7FF;
+        uint16_t zeroOutputPwmLow = 0x7FF;
+
+        uint16_t zeroOutputPwm(float voltage)
+        {
+            return zeroOutputPwmLow + (voltage - zeroOutputPwmVoltageLow) * (zeroOutputPwmHigh - zeroOutputPwmLow) / (zeroOutputPwmVoltageHigh - zeroOutputPwmVoltageLow);
+        }
     };
 
     enum class ChannelMode

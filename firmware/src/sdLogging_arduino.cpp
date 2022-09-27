@@ -1,3 +1,6 @@
+#include "config.h"
+
+#if IS_FRAMEWORK_ARDUINO
 #include "sdLogging.h"
 #include <SdFat.h>
 #include <BufferedPrint.h>
@@ -72,3 +75,4 @@ namespace sdLogging
         }
     }
 }
+#endif

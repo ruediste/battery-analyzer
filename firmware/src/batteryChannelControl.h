@@ -48,7 +48,10 @@ public:
     Mode mode = Mode::IDLE;
     Target target = Target::CURRENT;
 
+    // voltage at the battery, adjusted with the current and the known contact resistance
     float batteryVoltage = 0;
+
+    // voltage measured in the tester
     float measuredVoltage = 0;
     uint16_t measuredVoltageRaw = 0;
 
@@ -115,7 +118,7 @@ public:
         }
 
         wprintw(w, " limitVoltage: %f stepSize: %f pwm: %i", limitVoltage, stepSize, outputCurrentPWM);
-        wprintw(w, " uMeas: %f uBat: %f pwm: %i", measuredVoltage, batteryVoltage);
+        wprintw(w, " uMeas: %f uBat: %f zeroPWM: %i", measuredVoltage, batteryVoltage, config().zeroOutputPwm(measuredVoltage));
         wprintw(w, " HAL: voltage: %f capacity: %f pwm: %i current: %f\n",
                 hal.voltage, hal.capacity, hal.outputPWM, hal.outputCurrent);
         wrefresh(w);

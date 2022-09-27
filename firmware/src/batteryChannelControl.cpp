@@ -16,7 +16,7 @@ void BatteryChannelControl::loop()
 
         // calculate the effective current flowing
         {
-            float roundedOutputCurrent = ((int32_t)outputCurrentPWM - config().zeroOutputPwm) / config().pwmFactor;
+            float roundedOutputCurrent = ((int32_t)outputCurrentPWM - config().zeroOutputPwm(measuredVoltage)) / config().pwmFactor;
 
             // calculate the required voltage on the other side of the shunt
             float shuntInput = measuredVoltage + roundedOutputCurrent * config().shuntResistance;

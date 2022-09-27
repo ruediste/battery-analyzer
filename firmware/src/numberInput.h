@@ -10,11 +10,11 @@ namespace numberInput
         void (*cancel)() = []() {};
         void (*print)() = []() {};
         void (*valueChanged)(uint32_t value) = [](uint32_t value) {};
+        uint32_t max = -1;
     };
 
     void enter(uint32_t initialValue, int digits, int fraction, void (*setup)(Callbacks &callbacks));
     bool active();
     void loop();
-
 };
 #endif

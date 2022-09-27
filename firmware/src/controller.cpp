@@ -395,21 +395,43 @@ namespace controller
                 break;
             case 1:
                 if (print)
-                    display::print(F("Zero Output PWM"));
+                    display::print(F("Zero PWM High"));
                 else
                 {
                     menu::leave();
                     numberInput::enter(
-                        currentChannelConfig().zeroOutputPwm, 5, 0, [](auto &c)
+                        currentChannelConfig().zeroOutputPwmHigh, 5, 0, [](auto &c)
                         {
                             c.success=[](uint32_t value)                           {
-                                currentChannelConfig().zeroOutputPwm=value;
+                                currentChannelConfig().zeroOutputPwmHigh=value;
+                                currentChannelConfig().zeroOutputPwmVoltageHigh=currentChannel().measuredVoltage();
                                 eeprom::flush();
                                 enterChannelConfigMenu(); };
-                        c.cancel=                          []                        { enterChannelConfigMenu(); }; });
+                            c.cancel=[] { enterChannelConfigMenu(); }; 
+                            c.print=[]{display::print("U High: "); display::print(currentChannel().measuredVoltage());};
+                            c.max=BatteryChannelHal::MAX_PWM; });
                 }
                 break;
             case 2:
+                if (print)
+                    display::print(F("Zero PWM Low"));
+                else
+                {
+                    menu::leave();
+                    numberInput::enter(
+                        currentChannelConfig().zeroOutputPwmLow, 5, 0, [](auto &c)
+                        {
+                            c.success=[](uint32_t value)                           {
+                                currentChannelConfig().zeroOutputPwmLow=value;
+                                currentChannelConfig().zeroOutputPwmVoltageLow=currentChannel().measuredVoltage();
+                                eeprom::flush();
+                                enterChannelConfigMenu(); };
+                            c.cancel=[] { enterChannelConfigMenu(); }; 
+                            c.print=[]{display::print("U Low: "); display::print(currentChannel().measuredVoltage());};
+                            c.max=BatteryChannelHal::MAX_PWM; });
+                }
+                break;
+            case 3:
                 if (print)
                     display::print(F("Current"));
                 else
@@ -419,7 +441,7 @@ namespace controller
                         abs(currentChannel().effectiveCurrent()) * 1000, 2, 3, [](auto &c)
                         {
                             c.success=[](uint32_t value)                               {
-                            currentChannelConfig().pwmFactor=abs(currentChannel().control.outputCurrentPWM-currentChannelConfig().zeroOutputPwm)/(value/1000.);
+                            currentChannelConfig().pwmFactor=abs(currentChannel().control.outputCurrentPWM-currentChannelConfig().zeroOutputPwm(currentChannel().measuredVoltage()))/(value/1000.);
                             eeprom::flush();
                             enterChannelConfigMenu(); };
                             c.cancel=                        []                        { enterChannelConfigMenu(); };
@@ -429,7 +451,7 @@ namespace controller
                             }; });
                 }
                 break;
-            case 3:
+            case 4:
                 if (print)
                     display::print(F("V Bat"));
                 else
@@ -453,7 +475,7 @@ namespace controller
                             }; });
                 }
                 break;
-            case 4:
+            case 5:
                 if (print)
                     display::print(F("R Src Ref Voltage"));
                 else
@@ -469,7 +491,7 @@ namespace controller
                             c.cancel=                                []                                { enterChannelConfigMenu(); }; });
                 }
                 break;
-            case 5:
+            case 6:
                 if (print)
                     display::print(F("Shunt Resistance"));
                 else
@@ -486,7 +508,7 @@ namespace controller
                           { enterChannelConfigMenu(); }; });
                 }
                 break;
-            case 6:
+            case 7:
                 if (print)
                     display::print(F("Min Input Voltage"));
                 else
@@ -503,7 +525,7 @@ namespace controller
                           { enterChannelConfigMenu(); }; });
                 }
                 break;
-            case 7:
+            case 8:
                 if (print)
                     display::print(F("Global"));
                 else
@@ -511,7 +533,7 @@ namespace controller
                     menu::enter(globalConfigMenu);
                 }
                 break;
-            case 8:
+            case 9:
                 if (print)
                     display::print(F("..."));
                 else
@@ -524,7 +546,7 @@ namespace controller
 
         uint8_t menuItemCount() override
         {
-            return 9;
+            return 10;
         }
     };
 
@@ -720,7 +742,6 @@ namespace controller
         {
             switch (i)
             {
-
             case 0:
                 if (print)
                 {
@@ -742,6 +763,7 @@ namespace controller
                                 currentChannelSetup().directPWM = value;
                                
                             };
+                            c.max=BatteryChannelHal::MAX_PWM;
 
                             c.print = []()
                             {
@@ -749,6 +771,30 @@ namespace controller
                                 display::print(currentChannel().effectiveCurrent());
                             }; });
                     return;
+                }
+                break;
+            case 1:
+                if (print)
+                {
+                    display::print(F("Set Zero PWM High"));
+                }
+                else
+                {
+                    currentChannelConfig().zeroOutputPwmHigh = currentChannelSetup().directPWM;
+                    currentChannelConfig().zeroOutputPwmVoltageHigh = currentChannel().measuredVoltage();
+                    eeprom::flush();
+                }
+                break;
+            case 2:
+                if (print)
+                {
+                    display::print(F("Set Zero PWM Low"));
+                }
+                else
+                {
+                    currentChannelConfig().zeroOutputPwmLow = currentChannelSetup().directPWM;
+                    currentChannelConfig().zeroOutputPwmVoltageLow = currentChannel().measuredVoltage();
+                    eeprom::flush();
                 }
                 break;
             default:
@@ -766,7 +812,7 @@ namespace controller
 
         uint8_t menuItemCount() override
         {
-            return 1 + modeMenuSuffix.menuItemCount();
+            return 3 + modeMenuSuffix.menuItemCount();
         }
     };
 

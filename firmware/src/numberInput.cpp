@@ -74,7 +74,10 @@ namespace numberInput
         else
         {
             display::setCursor(cursorColumn(), 1);
-            display::print("^");
+            if (editing)
+                display::print("*");
+            else
+                display::print("^");
         }
     }
 
@@ -157,6 +160,8 @@ namespace numberInput
                 tmp = value - move * tmp;
                 if (tmp < 0)
                     tmp = 0;
+                if (tmp > callbacks.max)
+                    tmp = callbacks.max;
                 value = tmp;
                 printValue();
             }
@@ -184,6 +189,7 @@ namespace numberInput
                 callbacks.cancel();
             }
             editing = !editing;
+            moveCursor(cursor);
         }
     }
 }

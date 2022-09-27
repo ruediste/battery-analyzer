@@ -12,6 +12,7 @@
 #include <pthread.h>
 #include "batteryChannel.h"
 #include <ncurses.h>
+#include "resistorMatcher.h"
 
 pthread_mutex_t lock;
 
@@ -92,6 +93,9 @@ int main()
             break;
         case 'b':
             BatteryChannel::channels[0].control.print(logWindow);
+            break;
+        case 'r':
+            resistorMatcher::calculate(logWindow);
             break;
         }
     }
