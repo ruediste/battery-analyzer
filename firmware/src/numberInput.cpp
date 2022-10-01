@@ -183,13 +183,16 @@ namespace numberInput
                 isActive = false;
                 callbacks.success(value);
             }
-            if (cursorAtCancel())
+            else if (cursorAtCancel())
             {
                 isActive = false;
                 callbacks.cancel();
             }
-            editing = !editing;
-            moveCursor(cursor);
+            else
+            {
+                editing = !editing;
+                moveCursor(cursor);
+            }
         }
     }
 }

@@ -20,6 +20,7 @@
 class BatteryChannelControl
 {
     instantMs_t nextUpdate = 0;
+    instantMs_t nextControlUpdate = 0;
 
     bool lastStepWasIncrease = false;
     float stepSize = 0;

@@ -8,6 +8,7 @@
 #include "numberInput.h"
 #include "eeprom.h"
 #include "sdLogging.h"
+#include "messageDisplay.h"
 
 namespace controller
 {
@@ -101,15 +102,6 @@ namespace controller
             display::setCursor(0, 3);
             display::print(F("PWM "));
             display::print(currentChannel().control.outputCurrentPWM);
-
-            display::print(F(" SD "));
-            display::print(sdLogging::getFailure());
-
-            if (sdLogging::getFailure() != 0)
-            {
-                display::print(F(" "));
-                display::print(sdLogging::getError());
-            }
         }
 
         if (currentChannelSetup().mode == eeprom::ChannelMode::Charger)
@@ -251,7 +243,7 @@ namespace controller
                         {
                         c.success = [](uint32_t value)
                         {
-                            eeprom::data.chargeVoltage=value/100;
+                            eeprom::data.chargeVoltage=value/100.;
                             eeprom::flush();
                             enterGlobalConfigMenu(); 
                         };
@@ -269,7 +261,7 @@ namespace controller
                         {
                         c.success = [](uint32_t value)
                         {
-                            eeprom::data.chargeCurrent=value/100;
+                            eeprom::data.chargeCurrent=value/100.;
                             eeprom::flush();
                             enterGlobalConfigMenu(); 
                         };
@@ -287,7 +279,7 @@ namespace controller
                         {
                         c.success = [](uint32_t value)
                         {
-                            eeprom::data.chargeCutoffCurrent=value/100;
+                            eeprom::data.chargeCutoffCurrent=value/100.;
                             eeprom::flush();
                             enterGlobalConfigMenu(); 
                         };
@@ -305,7 +297,7 @@ namespace controller
                         {
                         c.success = [](uint32_t value)
                         {
-                            eeprom::data.dischargeVoltage=value/100;
+                            eeprom::data.dischargeVoltage=value/100.;
                             eeprom::flush();
                             enterGlobalConfigMenu(); 
                         };
@@ -323,7 +315,7 @@ namespace controller
                         {
                         c.success = [](uint32_t value)
                         {
-                            eeprom::data.dischargeCurrent=value/100;
+                            eeprom::data.dischargeCurrent=value/100.;
                             eeprom::flush();
                             enterGlobalConfigMenu(); 
                         };
@@ -558,6 +550,7 @@ namespace controller
 
     struct ModeMenuSuffix
     {
+        // if false is returned, the caller will leave the current menu. If true is returned, a new menu or a number entry has typically been started
         bool handleMenu(uint8_t i, uint8_t count, bool print)
         {
             switch (i + menuItemCount() - count)
@@ -598,6 +591,23 @@ namespace controller
                 break;
             case 4:
                 if (print)
+                {
+                    display::print(F("SD "));
+                    display::print(sdLogging::getFailure());
+
+                    if (sdLogging::getFailure() != 0)
+                    {
+                        display::print(F(" "));
+                        display::print(sdLogging::getError());
+                    }
+                }
+                else
+                {
+                    return true;
+                }
+                break;
+            case 5:
+                if (print)
                     display::print(F("..."));
                 break;
             }
@@ -607,7 +617,7 @@ namespace controller
 
         uint8_t menuItemCount()
         {
-            return 5;
+            return 6;
         }
     };
 
@@ -879,8 +889,8 @@ namespace controller
 
     void init()
     {
-        eeprom::init();
         display::init();
+        eeprom::init();
         input::init();
         BatteryChannel::init();
         sdLogging::init();
@@ -893,12 +903,14 @@ namespace controller
         menu::loop();
         numberInput::loop();
         sdLogging::loop();
+        messageDisplay::loop();
+
         for (int i = 0; i < channelCount; i++)
         {
             BatteryChannel::channels[i].loop();
         }
 
-        if (menu::active() || numberInput::active())
+        if (menu::active() || numberInput::active() || messageDisplay::active())
             return;
 
         if (utils::now() - lastDisplayUpdate > 500)

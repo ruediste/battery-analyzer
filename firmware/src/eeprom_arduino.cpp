@@ -13,7 +13,6 @@ namespace eeprom
     void init()
     {
         data = Data();
-        return;
 
         memcpy(&data, (uint8_t *)(FLASH_BASE_ADDRESS), sizeof(Data));
 

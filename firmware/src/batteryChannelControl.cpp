@@ -30,6 +30,14 @@ void BatteryChannelControl::loop()
 
         // calculate the battery voltage
         batteryVoltage = measuredVoltage - effectiveCurrent * config().connectionResistance;
+    }
+
+    if (now > nextControlUpdate)
+    {
+        if (abs(batteryVoltage - limitVoltage) < 0.1)
+            nextControlUpdate = now + 200; // reduce control loop speed when close to the limit
+        else
+            nextControlUpdate = now + 100;
 
         // adjst the target current based on the mode
         bool increaseCurrent = false;
@@ -73,6 +81,7 @@ void BatteryChannelControl::loop()
                     i = targetPower / batteryVoltage;
                     break;
                 }
+
                 if (effectiveCurrent < i)
                     increaseCurrent = true;
                 else
@@ -106,6 +115,7 @@ void BatteryChannelControl::loop()
                     i = -targetPower / (config().resistorSourceRefVoltage - batteryVoltage);
                     break;
                 }
+
                 if (effectiveCurrent < i)
                     increaseCurrent = true;
                 else

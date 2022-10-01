@@ -42,6 +42,10 @@ namespace input
     // EXTI->RTSR |= 0b111 < 12;                             // rising trigger mask
     // EXTI->FTSR |= 0b111 < 12;                             // falling trigger mask
     // EXTI->IMR |= 0b111 < 12;                              // interrupt mask
+
+    pinMode(PB5, INPUT_PULLDOWN);
+    pinMode(PB8, INPUT_PULLDOWN);
+    pinMode(PB9, INPUT_PULLDOWN);
     attachInterrupt(digitalPinToInterrupt(PB5), processInputs, CHANGE);
     attachInterrupt(digitalPinToInterrupt(PB8), processInputs, CHANGE);
     attachInterrupt(digitalPinToInterrupt(PB9), processInputs, CHANGE);
