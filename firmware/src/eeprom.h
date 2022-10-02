@@ -52,9 +52,10 @@ namespace eeprom
 
     enum class ChargeMode
     {
+        Test,
         Charge,
         Discharge,
-        Idle
+        Idle,
     };
 
     enum class TestState
@@ -67,10 +68,10 @@ namespace eeprom
         PreDischarge,
 
         // The battery is being discharged. In the middle of the discharge, the discharge voltage delta (dischargeDU) is measured
-        Discharge,
+        MainDischarge,
 
         // The battery is being charged. In the middle of the discharge, the charge voltage delta (chargeDU) is measured
-        Charge,
+        MainCharge,
     };
 
     struct Statistics
@@ -104,6 +105,8 @@ namespace eeprom
 
         ChargeMode chargeMode = ChargeMode::Idle;
 
+        TestState testState = TestState::PreCharge;
+
         // not used for charger mode
         bool enabled = false;
 
@@ -116,11 +119,8 @@ namespace eeprom
         uint16_t directPWM = BatteryChannelHal::MAX_PWM / 2;
 
         Statistics stats;
-
         Statistics dischargeStats;
-
-        float dischargeDU = 0;
-        float chargeDU = 0;
+        bool testComplete=false;
     };
 
     const uint16_t MAGIC = 0xE5E7;

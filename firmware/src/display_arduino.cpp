@@ -19,7 +19,7 @@ namespace display
     lcd.backlight();
   }
 
-  size_t print(double n) { return lcd.print(n); }
+  size_t print(double n, int prec) { return lcd.print(n, prec); }
   size_t print(const char *str) { return lcd.print(str); }
   size_t print(const __FlashStringHelper *ifsh) { return lcd.print(ifsh); }
 

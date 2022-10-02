@@ -14,7 +14,7 @@ public:
     uint16_t outputPWM = 0;
     float outputCurrent = 0;
     float voltage = 4.15;
-    float capacity = 10; // in ampere-seconds/volt
+    float capacity = 20; // in ampere-seconds/volt
     instantMs_t lastLoop = 0;
 #endif
 

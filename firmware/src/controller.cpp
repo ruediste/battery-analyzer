@@ -15,6 +15,7 @@ namespace controller
     int _currentChannel = 0;
 
     bool showStatistics = false;
+    int statisticsPage = 0;
 
     instantMs_t lastDisplayUpdate = 0;
 
@@ -33,69 +34,147 @@ namespace controller
         return currentChannel().config();
     }
 
+    void printTime(float timeSeconds)
+    {
+        int minutes = (int)(timeSeconds / 60);
+        display::print(minutes);
+        display::print(F(":"));
+        display::print(timeSeconds - minutes * 60);
+    }
+
+    void printStatistics(eeprom::Statistics &stats)
+    {
+        display::setCursor(0, 1);
+        display::print(stats.milliAmperHours());
+        display::print(F(" mAh"));
+
+        display::setCursor(0, 2);
+        display::print(stats.wattHours(), 3);
+        display::print(F(" Wh"));
+
+        display::setCursor(0, 3);
+        display::print(F("Time "));
+        printTime(stats.seconds);
+    }
+
     void updateDisplay()
     {
         display::clear();
         display::setCursor(0, 0);
         display::print(F("CH: "));
-        display::print(_currentChannel);
-        display::print(F(" M: "));
 
-        switch (currentChannelSetup().mode)
+        display::print(_currentChannel);
+        display::print(F(" "));
+
+        if (!(showStatistics && currentChannelSetup().testComplete))
         {
-        case eeprom::ChannelMode::Charger:
-            display::print(F("Charger"));
-            break;
-        case eeprom::ChannelMode::CV_CC_Source:
-            display::print(F("CV CC Src"));
-            break;
-        case eeprom::ChannelMode::CV_CC_Sink:
-            display::print(F("CV CC Sink"));
-            break;
-        case eeprom::ChannelMode::Resistor_Source:
-            display::print(F("Res Source"));
-            break;
-        case eeprom::ChannelMode::Resistor_Sink:
-            display::print(F("Res Sink"));
-            break;
-        case eeprom::ChannelMode::Power_Source:
-            display::print(F("Power Source"));
-            break;
-        case eeprom::ChannelMode::Power_Sink:
-            display::print(F("Power Sink"));
-            break;
-        case eeprom::ChannelMode::Direct_PWM:
-            display::print(F("Direct PWM"));
-            break;
+
+            switch (currentChannelSetup().mode)
+            {
+            case eeprom::ChannelMode::Charger:
+                switch (currentChannelSetup().chargeMode)
+                {
+                case eeprom::ChargeMode::Charge:
+                    display::print(F("Charging"));
+                    break;
+                case eeprom::ChargeMode::Discharge:
+                    display::print(F("Discharging"));
+                    ;
+                    break;
+                case eeprom::ChargeMode::Idle:
+                    display::print(F("Idle"));
+                    break;
+
+                case eeprom::ChargeMode::Test:
+                    switch (currentChannelSetup().testState)
+                    {
+                    case eeprom::TestState::PreCharge:
+                        display::print(F("Pre Charge"));
+                        break;
+                    case eeprom::TestState::PreDischarge:
+                        display::print(F("Pre Discharge"));
+                        break;
+                    case eeprom::TestState::MainCharge:
+                        display::print(F("Main Charge"));
+                        break;
+                    case eeprom::TestState::MainDischarge:
+                        display::print(F("Main Discharge"));
+                        break;
+                    }
+                    break;
+                }
+                break;
+            case eeprom::ChannelMode::CV_CC_Source:
+                display::print(F("CV CC Src"));
+                break;
+            case eeprom::ChannelMode::CV_CC_Sink:
+                display::print(F("CV CC Sink"));
+                break;
+            case eeprom::ChannelMode::Resistor_Source:
+                display::print(F("Res Source"));
+                break;
+            case eeprom::ChannelMode::Resistor_Sink:
+                display::print(F("Res Sink"));
+                break;
+            case eeprom::ChannelMode::Power_Source:
+                display::print(F("Power Source"));
+                break;
+            case eeprom::ChannelMode::Power_Sink:
+                display::print(F("Power Sink"));
+                break;
+            case eeprom::ChannelMode::Direct_PWM:
+                display::print(F("Direct PWM"));
+                break;
+            }
         }
 
         if (showStatistics)
         {
-            display::setCursor(0, 1);
-            display::print(currentChannelSetup().stats.milliAmperHours());
-            display::print(F(" mAH"));
+            if (currentChannelSetup().testComplete)
+            {
+                switch (statisticsPage)
+                {
+                case 0:
+                    display::print(F("Discharge"));
+                    printStatistics(currentChannelSetup().dischargeStats);
+                    break;
+                case 1:
+                    display::print(F("Charge"));
+                    printStatistics(currentChannelSetup().stats);
+                    break;
+                case 2:
+                    display::print(F("Summary"));
 
-            display::setCursor(0, 2);
-            display::print(currentChannelSetup().stats.wattHours());
-            display::print(F(" WH"));
+                    display::setCursor(0, 1);
+                    display::print(F("Eff "));
+                    display::print(-currentChannelSetup().dischargeStats.wattSeconds / currentChannelSetup().stats.wattSeconds * 100);
+                    display::print(F("%"));
 
-            display::setCursor(0, 3);
-            display::print(F("Time "));
-            display::print(currentChannelSetup().stats.seconds);
-            display::print(F(" s"));
+                    display::setCursor(0, 2);
+                    display::print(F("Cap Diff "));
+                    display::print(100 * (-currentChannelSetup().dischargeStats.ampereSeconds / currentChannelSetup().stats.ampereSeconds - 1));
+                    display::print(F("%"));
+
+                    break;
+                }
+            }
+            else
+            {
+                printStatistics(currentChannelSetup().stats);
+            }
             return;
         }
 
         BatteryChannel &c = BatteryChannel::channels[_currentChannel];
         display::setCursor(0, 1);
-        display::print(F("U "));
         display::print(c.batteryVoltage());
-        display::print(F(" I "));
+        display::print(F(" V "));
         display::print(c.effectiveCurrent());
+        display::print(F(" A "));
 
         display::setCursor(0, 2);
-        display::print(F("mAH "));
         display::print(currentChannelSetup().stats.milliAmperHours());
+        display::print(F(" mAh"));
 
         if (currentChannelSetup().mode == eeprom::ChannelMode::Direct_PWM)
         {
@@ -103,22 +182,11 @@ namespace controller
             display::print(F("PWM "));
             display::print(currentChannel().control.outputCurrentPWM);
         }
-
-        if (currentChannelSetup().mode == eeprom::ChannelMode::Charger)
+        else
         {
             display::setCursor(0, 3);
-            switch (currentChannelSetup().chargeMode)
-            {
-            case eeprom::ChargeMode::Charge:
-                display::print(F("Charging"));
-                break;
-            case eeprom::ChargeMode::Discharge:
-                display::print(F("Discharging"));
-                ;
-                break;
-            case eeprom::ChargeMode::Idle:
-                display::print(F("Idle"));
-            }
+            display::print(F("Time "));
+            printTime(currentChannelSetup().stats.seconds);
         }
 
         lastDisplayUpdate = utils::now();
@@ -596,6 +664,7 @@ namespace controller
                 else
                 {
                     showStatistics = true;
+                    statisticsPage = 0;
                 }
                 break;
             case 2:
@@ -612,7 +681,12 @@ namespace controller
                     display::print(F("Reset Statistics"));
                 else
                 {
-                    currentChannelSetup().stats.reset();
+                    menu::leave();
+                    messageDisplay::show(
+                        "Reset Statistics?", []()
+                        { currentChannelSetup().stats.reset(); },
+                        []() {});
+                    return true;
                 }
                 break;
             case 4:
@@ -655,8 +729,15 @@ namespace controller
         {
             switch (i)
             {
-
             case 0:
+                if (print)
+                    display::print(F("Test"));
+                else
+                {
+                    currentChannelSetup().chargeMode = eeprom::ChargeMode::Test;
+                }
+                break;
+            case 1:
                 if (print)
                     display::print(F("Discharge"));
                 else
@@ -664,7 +745,7 @@ namespace controller
                     currentChannelSetup().chargeMode = eeprom::ChargeMode::Discharge;
                 }
                 break;
-            case 1:
+            case 2:
                 if (print)
                     display::print(F("Charge"));
                 else
@@ -672,7 +753,7 @@ namespace controller
                     currentChannelSetup().chargeMode = eeprom::ChargeMode::Charge;
                 }
                 break;
-            case 2:
+            case 3:
                 if (print)
                     display::print(F("Idle"));
                 else
@@ -695,7 +776,7 @@ namespace controller
 
         uint8_t menuItemCount() override
         {
-            return 3 + modeMenuSuffix.menuItemCount();
+            return 4 + modeMenuSuffix.menuItemCount();
         }
     };
 
@@ -939,14 +1020,29 @@ namespace controller
         if (menu::active() || numberInput::active() || messageDisplay::active())
             return;
 
-        if (utils::now() - lastDisplayUpdate > 500)
+        if (utils::now() > lastDisplayUpdate + 500)
+        {
             updateDisplay();
+        }
 
         if (showStatistics)
         {
+            int move = input::getAndResetInputEncoder();
+            if (move != 0)
+            {
+                statisticsPage += move;
+                if (statisticsPage < 0)
+                {
+                    statisticsPage = 0;
+                }
+                if (statisticsPage > 2)
+                {
+                    statisticsPage = 2;
+                }
+                updateDisplay();
+            }
             if (input::getAndResetInputEncoderClicked())
             {
-                input::getAndResetInputEncoder();
                 showStatistics = false;
             }
             return;

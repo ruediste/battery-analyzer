@@ -61,9 +61,11 @@ namespace display
     return displayPrintf("%.2f", n);
   }
 
-  size_t print(double n)
+  size_t print(double n, int prec)
   {
-    return displayPrintf("%.2f", n);
+    char buf[10];
+    snprintf(buf, 10, "%%.%df", prec);
+    return displayPrintf(buf, n);
   }
 
   void print(const char ch)

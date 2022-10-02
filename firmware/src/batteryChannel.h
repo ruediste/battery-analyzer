@@ -13,6 +13,8 @@ class BatteryChannel
 
     eeprom::ChargeMode appliedChargeMode = eeprom::ChargeMode::Idle;
     instantMs_t lastChargeModeChange = utils::now();
+    instantMs_t lastTestModeChange = utils::now();
+
     eeprom::ChannelSetup _setup;
 
 public:
@@ -35,12 +37,20 @@ public:
     }
 
     void idle() { this->control.idle(); }
+    void charge()
+    {
+        charge(eeprom::data.chargeCurrent, eeprom::data.chargeVoltage);
+    }
     void charge(float current, float limit)
     {
         this->control.target = BatteryChannelControl::Target::CURRENT;
         this->control.targetCurrent = current;
         this->control.limitVoltage = limit;
         this->control.mode = BatteryChannelControl::Mode::SOURCE;
+    }
+    void discharge()
+    {
+        discharge(eeprom::data.dischargeCurrent, eeprom::data.dischargeVoltage);
     }
     void discharge(float current, float limit)
     {
