@@ -17,7 +17,7 @@ void BatteryChannel::loop()
 
     instantMs_t now = utils::now();
 
-    if (now + 1000 > lastStatisticsLoop)
+    if (now > lastStatisticsLoop + 1000)
     {
         instantMs_t elapsedMs = now - lastStatisticsLoop;
         lastStatisticsLoop = now;

@@ -5,7 +5,7 @@
 namespace messageDisplay
 {
     bool active();
-    void show(const char *message);
+    void show(const char *message, void (*complete)(), void (*cancel)() = NULL);
     void loop();
 };
 #endif

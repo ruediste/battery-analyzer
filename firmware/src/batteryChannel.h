@@ -18,7 +18,10 @@ class BatteryChannel
 public:
     BatteryChannelControl control;
 
-    BatteryChannel(int channel = -1) : control(channel) {}
+    BatteryChannel(int channel = -1) : control(channel)
+    {
+        _setup.mode = eeprom::data.startupChannelMode;
+    }
 
     eeprom::ChannelConfig &config()
     {

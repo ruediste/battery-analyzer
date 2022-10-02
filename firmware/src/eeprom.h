@@ -141,6 +141,8 @@ namespace eeprom
         float dischargeCurrent = 1;
 
         ChannelConfig channelConfig[channelCount];
+
+        eeprom::ChannelMode startupChannelMode;
     };
 
     extern Data data;

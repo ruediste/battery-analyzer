@@ -128,11 +128,8 @@ namespace controller
     void enterChannelConfigMenu();
     void enterGlobalConfigMenu();
 
-    void setChannelMode(eeprom::ChannelMode mode)
-    {
-        currentChannelSetup().mode = mode;
-        menu::leave();
-    }
+    void (*modeMenuChosenCallback)(eeprom::ChannelMode mode);
+    void (*modeMenuBackCallback)();
 
     struct ModeMenu : public menu::MenuHandler
     {
@@ -146,7 +143,7 @@ namespace controller
                     display::print(F("Charger"));
                 else
                 {
-                    setChannelMode(eeprom::ChannelMode::Charger);
+                    modeMenuChosenCallback(eeprom::ChannelMode::Charger);
                 }
                 break;
             case 1:
@@ -154,7 +151,7 @@ namespace controller
                     display::print(F("CVCC Source"));
                 else
                 {
-                    setChannelMode(eeprom::ChannelMode::CV_CC_Source);
+                    modeMenuChosenCallback(eeprom::ChannelMode::CV_CC_Source);
                 }
                 break;
             case 2:
@@ -162,7 +159,7 @@ namespace controller
                     display::print(F("Direct PWM"));
                 else
                 {
-                    setChannelMode(eeprom::ChannelMode::Direct_PWM);
+                    modeMenuChosenCallback(eeprom::ChannelMode::Direct_PWM);
                 }
                 break;
             case 3:
@@ -170,7 +167,7 @@ namespace controller
                     display::print(F("CVCC Sink"));
                 else
                 {
-                    setChannelMode(eeprom::ChannelMode::CV_CC_Sink);
+                    modeMenuChosenCallback(eeprom::ChannelMode::CV_CC_Sink);
                 }
                 break;
             case 4:
@@ -178,7 +175,7 @@ namespace controller
                     display::print(F("Resistor Source"));
                 else
                 {
-                    setChannelMode(eeprom::ChannelMode::Resistor_Source);
+                    modeMenuChosenCallback(eeprom::ChannelMode::Resistor_Source);
                 }
                 break;
             case 5:
@@ -186,7 +183,7 @@ namespace controller
                     display::print(F("Resistor Sink"));
                 else
                 {
-                    setChannelMode(eeprom::ChannelMode::Resistor_Sink);
+                    modeMenuChosenCallback(eeprom::ChannelMode::Resistor_Sink);
                 }
                 break;
             case 6:
@@ -194,7 +191,7 @@ namespace controller
                     display::print(F("Power Source"));
                 else
                 {
-                    setChannelMode(eeprom::ChannelMode::Power_Source);
+                    modeMenuChosenCallback(eeprom::ChannelMode::Power_Source);
                 }
                 break;
             case 7:
@@ -202,7 +199,7 @@ namespace controller
                     display::print(F("Power Sink"));
                 else
                 {
-                    setChannelMode(eeprom::ChannelMode::Power_Sink);
+                    modeMenuChosenCallback(eeprom::ChannelMode::Power_Sink);
                 }
                 break;
 
@@ -211,7 +208,7 @@ namespace controller
                     display::print(F("..."));
                 else
                 {
-                    enterChannelMenu();
+                    modeMenuBackCallback();
                 }
                 break;
             }
@@ -319,19 +316,42 @@ namespace controller
                             eeprom::flush();
                             enterGlobalConfigMenu(); 
                         };
-                        c.cancel =[]{enterGlobalConfigMenu(); }; });
+                        c.cancel = enterGlobalConfigMenu; });
                 }
                 break;
             case 5:
                 if (print)
-                    display::print(F("Reset EEPROM"));
+                {
+                    display::print(F("Startup Ch Mode"));
+                }
                 else
                 {
-                    eeprom::data = eeprom::Data();
-                    eeprom::flush();
+                    modeMenuChosenCallback = [](eeprom::ChannelMode mode)
+                    {
+                        eeprom::data.startupChannelMode = mode;
+                        eeprom::flush();
+                        enterGlobalConfigMenu();
+                    };
+                    modeMenuBackCallback = enterGlobalConfigMenu;
+                    menu::enter(modeMenu);
                 }
                 break;
             case 6:
+                if (print)
+                    display::print("Reset EEPROM");
+                else
+                {
+                    menu::leave();
+                    messageDisplay::show(
+                        "Reset EEPROM?", []()
+                        {
+                        eeprom::data = eeprom::Data();
+                        eeprom::flush();
+                        messageDisplay::show("Reset Complete",[](){}); },
+                        []() {});
+                }
+                break;
+            case 7:
                 if (print)
                     display::print(F("..."));
                 else
@@ -344,7 +364,7 @@ namespace controller
 
         uint8_t menuItemCount() override
         {
-            return 7;
+            return 8;
         }
     };
 
@@ -560,6 +580,12 @@ namespace controller
                     display::print(F("Mode"));
                 else
                 {
+                    modeMenuChosenCallback = [](eeprom::ChannelMode mode)
+                    {
+                        currentChannelSetup().mode = mode;
+                        menu::leave();
+                    };
+                    modeMenuBackCallback = enterChannelMenu;
                     menu::enter(modeMenu);
                     return true;
                 }
@@ -938,6 +964,7 @@ namespace controller
         }
         if (input::getAndResetInputEncoderClicked())
         {
+            // enterGlobalConfigMenu();
             enterChannelMenu();
         }
     }

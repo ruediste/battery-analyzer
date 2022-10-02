@@ -50,12 +50,12 @@ namespace sdLogging
                     return;
                 }
 
-                if (!sd.exists("log.txt"))
+                if (!sd.exists("log.csv"))
                 {
                     printHeader = true;
                 }
 
-                if (!logFile.open("log.txt", O_RDWR | O_CREAT | O_APPEND))
+                if (!logFile.open("log.csv", O_RDWR | O_CREAT | O_APPEND))
                 {
                     failure = 2;
                     return;
@@ -68,6 +68,9 @@ namespace sdLogging
                 bp.print(F("time"));
                 for (int i = 0; i < channelCount; i++)
                 {
+                    bp.print(F(",Wh"));
+                    bp.print(i);
+
                     bp.print(F(",Vm"));
                     bp.print(i);
 
@@ -79,9 +82,6 @@ namespace sdLogging
 
                     bp.print(F(",mAh"));
                     bp.print(i);
-
-                    bp.print(F(",Wh"));
-                    bp.print(i);
                 }
                 bp.print('\n');
             }
@@ -90,17 +90,16 @@ namespace sdLogging
             for (int i = 0; i < channelCount; i++)
             {
                 BatteryChannel &ch = BatteryChannel::channels[i];
-                bp.printField(ch.measuredVoltage(), ',');
-                bp.printField(ch.batteryVoltage(), ',');
-                bp.printField(ch.effectiveCurrent(), ',');
-                bp.printField(ch.setup().stats.milliAmperHours(), ',');
-                bp.printField(ch.setup().stats.wattHours(), ',');
+                bp.printField(ch.setup().stats.wattHours(), ',', 5);
+                bp.printField(ch.measuredVoltage(), ',', 3);
+                bp.printField(ch.batteryVoltage(), ',', 3);
+                bp.printField(ch.effectiveCurrent(), ',', 3);
+                bp.printField(ch.setup().stats.milliAmperHours(), ',', 2);
             }
             bp.print('\n');
 
             if (!bp.sync() || !logFile.sync())
             {
-                //      Serial.print("sync csvFile failed");
                 failure = 3;
             }
         }
