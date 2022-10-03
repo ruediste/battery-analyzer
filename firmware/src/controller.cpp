@@ -57,8 +57,28 @@ namespace controller
         printTime(stats.seconds);
     }
 
+    void printTestSummary()
+    {
+        display::setCursor(0, 1);
+        display::print(F("Eff "));
+        display::print(currentChannelSetup().efficiencyPercent());
+        display::print(F("%"));
+
+        display::setCursor(0, 2);
+        display::print(F("Cap "));
+        display::print(currentChannelSetup().stats.milliAmperHours(), 0);
+        display::print(F(" mAh "));
+        display::print(currentChannelSetup().capacityDifferencePercent(), 1);
+        display::print(F("%"));
+
+        display::setCursor(0, 3);
+        display::print(currentChannelSetup().stats.wattHours(), 3);
+        display::print(F(" Wh"));
+    }
+
     void updateDisplay()
     {
+        lastDisplayUpdate = utils::now();
         display::clear();
         display::setCursor(0, 0);
         display::print(F("CH: "));
@@ -144,17 +164,7 @@ namespace controller
                     break;
                 case 2:
                     display::print(F("Summary"));
-
-                    display::setCursor(0, 1);
-                    display::print(F("Eff "));
-                    display::print(-currentChannelSetup().dischargeStats.wattSeconds / currentChannelSetup().stats.wattSeconds * 100);
-                    display::print(F("%"));
-
-                    display::setCursor(0, 2);
-                    display::print(F("Cap Diff "));
-                    display::print(100 * (-currentChannelSetup().dischargeStats.ampereSeconds / currentChannelSetup().stats.ampereSeconds - 1));
-                    display::print(F("%"));
-
+                    printTestSummary();
                     break;
                 }
             }
@@ -162,6 +172,12 @@ namespace controller
             {
                 printStatistics(currentChannelSetup().stats);
             }
+            return;
+        }
+
+        if (currentChannelSetup().mode == eeprom::ChannelMode::Charger && currentChannelSetup().testComplete)
+        {
+            printTestSummary();
             return;
         }
 
@@ -188,8 +204,6 @@ namespace controller
             display::print(F("Time "));
             printTime(currentChannelSetup().stats.seconds);
         }
-
-        lastDisplayUpdate = utils::now();
     }
 
     void enterChannelMenu();
@@ -684,7 +698,7 @@ namespace controller
                     menu::leave();
                     messageDisplay::show(
                         "Reset Statistics?", []()
-                        { currentChannelSetup().stats.reset(); },
+                        { currentChannelSetup().stats.reset(); currentChannelSetup().testComplete=false; },
                         []() {});
                     return true;
                 }

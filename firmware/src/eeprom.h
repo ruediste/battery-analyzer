@@ -120,7 +120,17 @@ namespace eeprom
 
         Statistics stats;
         Statistics dischargeStats;
-        bool testComplete=false;
+        bool testComplete = false;
+
+        float efficiencyPercent()
+        {
+            return -dischargeStats.wattSeconds / stats.wattSeconds * 100;
+        }
+
+        float capacityDifferencePercent()
+        {
+            return 100 * (-dischargeStats.ampereSeconds / stats.ampereSeconds - 1);
+        }
     };
 
     const uint16_t MAGIC = 0xE5E7;
