@@ -13,6 +13,7 @@
 #include "batteryChannel.h"
 #include <ncurses.h>
 #include "resistorMatcher.h"
+#include "log.h"
 
 pthread_mutex_t lock;
 
@@ -53,6 +54,7 @@ int main()
     WINDOW *logWindow = newwin(LINES - 8, COLS - 2, 7, 1);
     scrollok(logWindow, TRUE);
     wrefresh(logWindow);
+    logging::setLogWindow(logWindow);
 
     if (pthread_mutex_init(&lock, NULL) != 0)
     {

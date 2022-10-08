@@ -9,6 +9,7 @@
 #include "eeprom.h"
 #include "sdLogging.h"
 #include "messageDisplay.h"
+#include "log.h"
 
 namespace controller
 {
@@ -16,6 +17,7 @@ namespace controller
 
     bool showStatistics = false;
     int statisticsPage = 0;
+    int maxStatisticsPage = 1;
 
     instantMs_t lastDisplayUpdate = 0;
 
@@ -79,93 +81,49 @@ namespace controller
     void updateDisplay()
     {
         lastDisplayUpdate = utils::now();
+
         display::clear();
         display::setCursor(0, 0);
+
         display::print(F("CH: "));
 
         display::print(_currentChannel);
         display::print(F(" "));
 
-        if (!(showStatistics && currentChannelSetup().testComplete))
-        {
-
-            switch (currentChannelSetup().mode)
-            {
-            case eeprom::ChannelMode::Charger:
-                switch (currentChannelSetup().chargeMode)
-                {
-                case eeprom::ChargeMode::Charge:
-                    display::print(F("Charging"));
-                    break;
-                case eeprom::ChargeMode::Discharge:
-                    display::print(F("Discharging"));
-                    ;
-                    break;
-                case eeprom::ChargeMode::Idle:
-                    display::print(F("Idle"));
-                    break;
-
-                case eeprom::ChargeMode::Test:
-                    switch (currentChannelSetup().testState)
-                    {
-                    case eeprom::TestState::PreCharge:
-                        display::print(F("Pre Charge"));
-                        break;
-                    case eeprom::TestState::PreDischarge:
-                        display::print(F("Pre Discharge"));
-                        break;
-                    case eeprom::TestState::MainCharge:
-                        display::print(F("Main Charge"));
-                        break;
-                    case eeprom::TestState::MainDischarge:
-                        display::print(F("Main Discharge"));
-                        break;
-                    }
-                    break;
-                }
-                break;
-            case eeprom::ChannelMode::CV_CC_Source:
-                display::print(F("CV CC Src"));
-                break;
-            case eeprom::ChannelMode::CV_CC_Sink:
-                display::print(F("CV CC Sink"));
-                break;
-            case eeprom::ChannelMode::Resistor_Source:
-                display::print(F("Res Source"));
-                break;
-            case eeprom::ChannelMode::Resistor_Sink:
-                display::print(F("Res Sink"));
-                break;
-            case eeprom::ChannelMode::Power_Source:
-                display::print(F("Power Source"));
-                break;
-            case eeprom::ChannelMode::Power_Sink:
-                display::print(F("Power Sink"));
-                break;
-            case eeprom::ChannelMode::Direct_PWM:
-                display::print(F("Direct PWM"));
-                break;
-            }
-        }
-
         if (showStatistics)
         {
-            if (currentChannelSetup().testComplete)
+            int page = 0;
+            bool testRunning = currentChannelSetup().mode == eeprom::ChannelMode::Charger && currentChannelSetup().chargeMode == eeprom::ChargeMode::Test;
+            if (currentChannelSetup().mode == eeprom::ChannelMode::Charger)
             {
-                switch (statisticsPage)
+
+                if (statisticsPage == page++)
                 {
-                case 0:
-                    display::print(F("Discharge"));
-                    printStatistics(currentChannelSetup().dischargeStats);
-                    break;
-                case 1:
-                    display::print(F("Charge"));
+                    display::print(F("Stats"));
                     printStatistics(currentChannelSetup().stats);
-                    break;
-                case 2:
-                    display::print(F("Summary"));
-                    printTestSummary();
-                    break;
+                }
+
+                if (currentChannel().dischargeStatsPresent())
+                {
+                    if (statisticsPage == page++)
+                    {
+                        display::print(F("Stats Dis"));
+                        printStatistics(currentChannelSetup().dischargeStats);
+                    }
+                }
+
+                if (currentChannel().completeStatsPresent())
+                {
+                    if (statisticsPage == page++)
+                    {
+                        display::print(F("Stats Summary"));
+                        printTestSummary();
+                    }
+                }
+                maxStatisticsPage = page;
+                if (statisticsPage >= maxStatisticsPage)
+                {
+                    statisticsPage = maxStatisticsPage - 1;
                 }
             }
             else
@@ -175,10 +133,62 @@ namespace controller
             return;
         }
 
-        if (currentChannelSetup().mode == eeprom::ChannelMode::Charger && currentChannelSetup().testComplete)
+        switch (currentChannelSetup().mode)
         {
-            printTestSummary();
-            return;
+        case eeprom::ChannelMode::Charger:
+            switch (currentChannelSetup().chargeMode)
+            {
+            case eeprom::ChargeMode::Charge:
+                display::print(F("Charging"));
+                break;
+            case eeprom::ChargeMode::Discharge:
+                display::print(F("Discharging"));
+                ;
+                break;
+            case eeprom::ChargeMode::Idle:
+                display::print(F("Idle"));
+                break;
+
+            case eeprom::ChargeMode::Test:
+                switch (currentChannel().testState())
+                {
+                case TestController::State::PreCharge:
+                    display::print(F("Pre Charge"));
+                    break;
+                case TestController::State::PreDischarge:
+                    display::print(F("Pre Discharge"));
+                    break;
+                case TestController::State::MainCharge:
+                    display::print(F("Main Charge"));
+                    break;
+                case TestController::State::MainDischarge:
+                    display::print(F("Main Discharge"));
+                    break;
+                }
+                break;
+            }
+            break;
+        case eeprom::ChannelMode::CV_CC_Source:
+            display::print(F("CV CC Src"));
+            break;
+        case eeprom::ChannelMode::CV_CC_Sink:
+            display::print(F("CV CC Sink"));
+            break;
+        case eeprom::ChannelMode::Resistor_Source:
+            display::print(F("Res Source"));
+            break;
+        case eeprom::ChannelMode::Resistor_Sink:
+            display::print(F("Res Sink"));
+            break;
+        case eeprom::ChannelMode::Power_Source:
+            display::print(F("Power Source"));
+            break;
+        case eeprom::ChannelMode::Power_Sink:
+            display::print(F("Power Sink"));
+            break;
+        case eeprom::ChannelMode::Direct_PWM:
+            display::print(F("Direct PWM"));
+            break;
         }
 
         BatteryChannel &c = BatteryChannel::channels[_currentChannel];
@@ -403,6 +413,24 @@ namespace controller
                 break;
             case 5:
                 if (print)
+                    display::print(F("Dis Cutoff Current"));
+                else
+                {
+                    menu::leave();
+                    numberInput::enter(
+                        eeprom::data.dischargeCutoffCurrent * 100, 2, 2, [](auto &c)
+                        {
+                        c.success = [](uint32_t value)
+                        {
+                            eeprom::data.dischargeCutoffCurrent=value/100.;
+                            eeprom::flush();
+                            enterGlobalConfigMenu(); 
+                        };
+                        c.cancel = enterGlobalConfigMenu; });
+                }
+                break;
+            case 6:
+                if (print)
                 {
                     display::print(F("Startup Ch Mode"));
                 }
@@ -418,7 +446,7 @@ namespace controller
                     menu::enter(modeMenu);
                 }
                 break;
-            case 6:
+            case 7:
                 if (print)
                     display::print("Reset EEPROM");
                 else
@@ -433,7 +461,7 @@ namespace controller
                         []() {});
                 }
                 break;
-            case 7:
+            case 8:
                 if (print)
                     display::print(F("..."));
                 else
@@ -446,7 +474,7 @@ namespace controller
 
         uint8_t menuItemCount() override
         {
-            return 8;
+            return 9;
         }
     };
 
@@ -698,7 +726,8 @@ namespace controller
                     menu::leave();
                     messageDisplay::show(
                         "Reset Statistics?", []()
-                        { currentChannelSetup().stats.reset(); currentChannelSetup().testComplete=false; },
+                        { currentChannelSetup().stats.reset(); 
+                        currentChannel().resetStatistics(); },
                         []() {});
                     return true;
                 }
@@ -1049,9 +1078,9 @@ namespace controller
                 {
                     statisticsPage = 0;
                 }
-                if (statisticsPage > 2)
+                if (statisticsPage >= maxStatisticsPage)
                 {
-                    statisticsPage = 2;
+                    statisticsPage = maxStatisticsPage - 1;
                 }
                 updateDisplay();
             }

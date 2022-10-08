@@ -13,9 +13,13 @@ public:
 #if IS_FRAMEWORK_NATIVE
     uint16_t outputPWM = 0;
     float outputCurrent = 0;
-    float voltage = 4.15;
-    float capacity = 20; // in ampere-seconds/volt
+    float voltage = 3.90;
+    float capacity = 50; // in ampere-seconds/volt
     instantMs_t lastLoop = 0;
+    float uBat()
+    {
+        return voltage + outputCurrent * 0.1;
+    }
 #endif
 
 #if IS_STM
@@ -24,7 +28,7 @@ public:
 #endif
     static const uint16_t MAX_PWM = 0x0FFF;
 
-    BatteryChannelHal(uint8_t channel)
+    void init_inst(uint8_t channel)
     {
         this->channel = channel;
     }

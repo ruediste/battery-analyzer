@@ -36,7 +36,7 @@ namespace sdLogging
         instantMs_t now = utils::now();
         if (now > nextPrint)
         {
-            nextPrint = now + 10000;
+            nextPrint = now + 5000;
 
             bool printHeader = false;
             if (failure != 0)

@@ -58,22 +58,6 @@ namespace eeprom
         Idle,
     };
 
-    enum class TestState
-    {
-        // At the start of the test cycle, the battery has to charge for at least 30 seconds before the charge current drops to the
-        // charge cutoff current. If charging completes before that, the PreDischarge state is entered. Otherwise the discharge starts
-        PreCharge,
-
-        // The battery voltage is too high. The battery is discharged (typically for 2 Minutes), before another PreCharge attempt is made
-        PreDischarge,
-
-        // The battery is being discharged. In the middle of the discharge, the discharge voltage delta (dischargeDU) is measured
-        MainDischarge,
-
-        // The battery is being charged. In the middle of the discharge, the charge voltage delta (chargeDU) is measured
-        MainCharge,
-    };
-
     struct Statistics
     {
         float ampereSeconds = 0;
@@ -105,8 +89,6 @@ namespace eeprom
 
         ChargeMode chargeMode = ChargeMode::Idle;
 
-        TestState testState = TestState::PreCharge;
-
         // not used for charger mode
         bool enabled = false;
 
@@ -120,7 +102,6 @@ namespace eeprom
 
         Statistics stats;
         Statistics dischargeStats;
-        bool testComplete = false;
 
         float efficiencyPercent()
         {
@@ -144,15 +125,16 @@ namespace eeprom
         // minimum input voltage to assume (used for max current calculation)
         float minInputVoltage = 5.f;
 
-        float chargeVoltage = 4;
+        float chargeVoltage = 4.15;
         float chargeCurrent = 1;
-        float chargeCutoffCurrent = 0.5;
-        float dischargeVoltage = 3.2;
+        float chargeCutoffCurrent = 0.2;
+        float dischargeVoltage = 3.3;
         float dischargeCurrent = 1;
 
         ChannelConfig channelConfig[channelCount];
 
         eeprom::ChannelMode startupChannelMode;
+        float dischargeCutoffCurrent = 0.2;
     };
 
     extern Data data;

@@ -5,12 +5,14 @@
 #include "utils.h"
 #include "config.h"
 #include "eeprom.h"
+#include "log.h"
 
 #if IS_FRAMEWORK_NATIVE
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <ncurses.h>
+#include <math.h>
 #endif
 
 /**
@@ -29,6 +31,10 @@ class BatteryChannelControl
     {
         return BatteryChannelHal::MAX_PWM / 2;
     }
+
+    static constexpr instantMs_t updateDelayMs = 100;
+    static constexpr float alpha1s = 1 - exp(-updateDelayMs / 1000.);
+    static constexpr float alpha5s = 1 - exp(-updateDelayMs / 5000.);
 
 public:
     enum class Mode
@@ -51,6 +57,7 @@ public:
 
     // voltage at the battery, adjusted with the current and the known contact resistance
     float batteryVoltage = 0;
+    float batteryVoltage1s = 0;
 
     // voltage measured in the tester
     float measuredVoltage = 0;
@@ -58,6 +65,8 @@ public:
 
     float effectiveCurrent = 0;
     uint16_t outputCurrentPWM = 0;
+    float effectiveCurrent1s = 0;
+    float effectiveCurrent5s = 0;
 
     float targetCurrent = 0;    // amps
     float targetResistance = 0; // ohm
@@ -68,8 +77,10 @@ public:
     float limitVoltage = 0;
 
     BatteryChannelHal hal;
-    BatteryChannelControl(int channel) : hal(BatteryChannelHal(channel))
+
+    void init(int channel)
     {
+        hal.init_inst(channel);
     }
 
     eeprom::ChannelConfig &config()
@@ -87,7 +98,7 @@ public:
 #if IS_FRAMEWORK_NATIVE
     void print(WINDOW *w)
     {
-        wprintw(w, "mode: ");
+        wprintw(w, "control mode: ");
         switch (mode)
         {
         case BatteryChannelControl::Mode::SOURCE:
@@ -120,8 +131,8 @@ public:
 
         wprintw(w, " limitVoltage: %f stepSize: %f pwm: %i", limitVoltage, stepSize, outputCurrentPWM);
         wprintw(w, " uMeas: %f uBat: %f zeroPWM: %i", measuredVoltage, batteryVoltage, config().zeroOutputPwm(measuredVoltage));
-        wprintw(w, " HAL: voltage: %f capacity: %f pwm: %i current: %f\n",
-                hal.voltage, hal.capacity, hal.outputPWM, hal.outputCurrent);
+        wprintw(w, " HAL: uInt: %f, uBat %f, capacity: %f pwm: %i current: %f\n",
+                hal.voltage, hal.uBat(), hal.capacity, hal.outputPWM, hal.outputCurrent);
         wrefresh(w);
     }
 #endif

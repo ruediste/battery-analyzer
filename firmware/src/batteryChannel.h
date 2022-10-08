@@ -3,6 +3,253 @@
 
 #include "config.h"
 #include "batteryChannelControl.h"
+#include "messageDisplay.h"
+#include "log.h"
+
+#define USE_LIMIT_EXTENSION false
+
+#if IS_FRAMEWORK_NATIVE
+#define PRE_CHARGE_TIME_MS 6'000
+#define PRE_DISCHARGE_TIME_MS 18'000
+#define SETTLE_TIME_MS 4'000
+#define REDUCE_LIMIT_MAX_MS 10000
+#else
+#define PRE_CHARGE_TIME_MS 60'000
+#define PRE_DISCHARGE_TIME_MS 180'000
+#define SETTLE_TIME_MS 20'000
+#define REDUCE_LIMIT_MAX_MS 120'000
+#endif
+
+/**
+ * Controls the charging/discharge process of a
+ * */
+class ChargeController
+{
+    bool limitExtended;
+    float extendedLimit;
+    float limit;
+    instantMs_t nextDecision;
+    instantMs_t limitReducedInstant;
+    bool charging;
+
+    instantMs_t lastStatisticsMs;
+    float extendedLimitMahCharged;
+
+    BatteryChannelControl *control;
+
+public:
+    bool idle;
+    void init(BatteryChannelControl *c)
+    {
+        this->control = c;
+    }
+
+    void charge()
+    {
+        limit = eeprom::data.chargeVoltage;
+        extendedLimit = 4.2;
+        charging = true;
+        idle = false;
+
+        control->mode = BatteryChannelControl::Mode::SOURCE;
+        control->target = BatteryChannelControl::Target::CURRENT;
+        control->targetCurrent = eeprom::data.chargeCurrent;
+        control->limitVoltage = limit;
+        limitExtended = false;
+
+        nextDecision = utils::now() + SETTLE_TIME_MS;
+        limitReducedInstant = 0;
+    }
+
+    void discharge()
+    {
+        limit = eeprom::data.dischargeVoltage;
+        extendedLimit = eeprom::data.dischargeVoltage - 0.1;
+        charging = false;
+        idle = false;
+
+        control->mode = BatteryChannelControl::Mode::SINK;
+        control->target = BatteryChannelControl::Target::CURRENT;
+        control->targetCurrent = -eeprom::data.dischargeCurrent;
+        control->limitVoltage = limit;
+        limitExtended = false;
+
+        nextDecision = utils::now() + SETTLE_TIME_MS;
+        limitReducedInstant = 0;
+    }
+
+    void loop()
+    {
+        if (idle)
+            return;
+        instantMs_t now = utils::now();
+
+        if (limitExtended && now > lastStatisticsMs + 1000)
+        {
+            float hoursElapsed = (now - lastStatisticsMs) / 1000. / 60.;
+            extendedLimitMahCharged += hoursElapsed + control->effectiveCurrent1s * hoursElapsed * 1000;
+
+            lastStatisticsMs = now;
+        }
+
+        if (now > nextDecision)
+        {
+            if (limitExtended)
+            {
+                if (extendedLimitMahCharged > 10)
+                {
+                    LOG("ChargeController.loop() reduceLimit");
+                    // setup normal discharge until next decision time
+                    control->limitVoltage = limit;
+                    nextDecision = now + SETTLE_TIME_MS;
+                    limitExtended = false;
+                    limitReducedInstant = now;
+                }
+            }
+            else
+            {
+                bool currentBelowCutoff = (charging && control->effectiveCurrent5s < eeprom::data.chargeCutoffCurrent) || (!charging && -control->effectiveCurrent5s < eeprom::data.dischargeCutoffCurrent);
+
+                if (currentBelowCutoff)
+                {
+                    if (USE_LIMIT_EXTENSION && limitReducedInstant != 0 && (now - limitReducedInstant) < REDUCE_LIMIT_MAX_MS)
+                    {
+                        // we're still waiting for the current to recover after a limit reduction
+                        nextDecision = now + 1000;
+                    }
+                    else
+                    {
+                        LOG("ChargeController current5s: %f loop(): idle=true\n", control->effectiveCurrent5s);
+                        idle = true;
+                    }
+                }
+                else
+                {
+                    if (USE_LIMIT_EXTENSION)
+                    {
+                        LOG("ChargeController.loop() extendLimit current5s: %f", control->effectiveCurrent5s);
+                        control->limitVoltage = extendedLimit;
+                        limitExtended = true;
+                        nextDecision = now + SETTLE_TIME_MS;
+                        lastStatisticsMs = now;
+                        extendedLimitMahCharged = 0;
+                    }
+                    else
+                    {
+                        // check every second without limit extension
+                        nextDecision = now + 1000;
+                    }
+                }
+            }
+        }
+    }
+};
+
+/**
+ * Controls the test process of a battery
+ * */
+
+class TestController
+{
+public:
+    enum class State
+    {
+        // At the start of the test cycle, the battery has to charge for at least 30 seconds before the charge current drops to the
+        // charge cutoff current. If charging completes before that, the PreDischarge state is entered. Otherwise the discharge starts
+        PreCharge,
+
+        // The battery voltage is too high. The battery is discharged (typically for 2 Minutes), before another PreCharge attempt is made
+        PreDischarge,
+
+        // The battery is being discharged. In the middle of the discharge, the discharge voltage delta (dischargeDU) is measured
+        MainDischarge,
+
+        // The battery is being charged. In the middle of the discharge, the charge voltage delta (chargeDU) is measured
+        MainCharge,
+    };
+
+    State state = State::PreCharge;
+    ChargeController *ctrl;
+    eeprom::ChannelSetup *setup;
+    instantMs_t nextDecision;
+
+    bool dischargeStatsPresent = false;
+    bool completeStatsPresent = false;
+    bool done = true;
+
+    void init(ChargeController *ctrl, eeprom::ChannelSetup *setup)
+    {
+        this->ctrl = ctrl;
+        this->setup = setup;
+    }
+
+    void start()
+    {
+        state = State::PreCharge;
+        ctrl->charge();
+        nextDecision = utils::now() + PRE_CHARGE_TIME_MS;
+        setup->stats.reset();
+        dischargeStatsPresent = false;
+        completeStatsPresent = false;
+        done = false;
+    }
+
+    void loop()
+    {
+        if (done)
+        {
+            return;
+        }
+        instantMs_t now = utils::now();
+
+        if (now < nextDecision)
+        {
+            if (state == State::PreCharge && ctrl->idle)
+            {
+                // we went idle during pre charge, switch to pre discharge
+                setup->stats.reset();
+                ctrl->discharge();
+                nextDecision = now + PRE_DISCHARGE_TIME_MS;
+            }
+            if (state == State::PreDischarge && ctrl->idle)
+            {
+                // we went idle during pre discharge, something is wrong
+                done = true;
+            }
+        }
+        else
+        {
+            if (ctrl->idle)
+            {
+                switch (state)
+                {
+                case State::PreCharge:
+                    state = State::MainDischarge;
+                    setup->stats.reset();
+                    ctrl->discharge();
+                    break;
+                case State::PreDischarge:
+                    state = State::PreCharge;
+                    setup->stats.reset();
+                    ctrl->charge();
+                    break;
+                case State::MainCharge:
+                    done = true;
+                    completeStatsPresent = true;
+                    break;
+                case State::MainDischarge:
+                    setup->dischargeStats = setup->stats;
+                    dischargeStatsPresent = true;
+                    setup->stats.reset();
+                    state = State::MainCharge;
+                    ctrl->charge();
+                    break;
+                }
+                nextDecision = now + SETTLE_TIME_MS;
+            }
+        }
+    }
+};
 
 /*
 A battery channel controls the charge/discharge process and keeps track of the statistics (mAh, Wh etc)
@@ -12,16 +259,20 @@ class BatteryChannel
     instantMs_t lastStatisticsLoop = utils::now();
 
     eeprom::ChargeMode appliedChargeMode = eeprom::ChargeMode::Idle;
-    instantMs_t lastChargeModeChange = utils::now();
-    instantMs_t lastTestModeChange = utils::now();
 
     eeprom::ChannelSetup _setup;
+
+    ChargeController chargeController;
+    TestController testController;
 
 public:
     BatteryChannelControl control;
 
-    BatteryChannel(int channel = -1) : control(channel)
+    void init_inst(int channel)
     {
+        control.init(channel);
+        chargeController.init(&control);
+        testController.init(&chargeController, &_setup);
         _setup.mode = eeprom::data.startupChannelMode;
     }
 
@@ -36,28 +287,19 @@ public:
         return _setup;
     }
 
+    TestController::State testState()
+    {
+        return testController.state;
+    }
+
+    bool dischargeStatsPresent() { return testController.dischargeStatsPresent; }
+    bool completeStatsPresent() { return testController.completeStatsPresent; }
+
     void idle() { this->control.idle(); }
-    void charge()
+    void resetStatistics()
     {
-        charge(eeprom::data.chargeCurrent, eeprom::data.chargeVoltage);
-    }
-    void charge(float current, float limit)
-    {
-        this->control.target = BatteryChannelControl::Target::CURRENT;
-        this->control.targetCurrent = current;
-        this->control.limitVoltage = limit;
-        this->control.mode = BatteryChannelControl::Mode::SOURCE;
-    }
-    void discharge()
-    {
-        discharge(eeprom::data.dischargeCurrent, eeprom::data.dischargeVoltage);
-    }
-    void discharge(float current, float limit)
-    {
-        this->control.target = BatteryChannelControl::Target::CURRENT;
-        this->control.targetCurrent = -current;
-        this->control.limitVoltage = limit;
-        this->control.mode = BatteryChannelControl::Mode::SINK;
+        testController.dischargeStatsPresent = false;
+        testController.completeStatsPresent = false;
     }
 
     float batteryVoltage()
@@ -73,6 +315,16 @@ public:
     float effectiveCurrent()
     {
         return control.effectiveCurrent;
+    }
+
+    float effectiveCurrent1s()
+    {
+        return control.effectiveCurrent1s;
+    }
+
+    float effectiveCurrent5s()
+    {
+        return control.effectiveCurrent5s;
     }
 
     void loop();

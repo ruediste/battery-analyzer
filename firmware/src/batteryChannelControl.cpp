@@ -2,13 +2,16 @@
 #include "utils.h"
 #include "display.h"
 
+#define UPDATE_DELAY_MS 100
+#define ALPHA_1S
+
 void BatteryChannelControl::loop()
 {
     hal.loop();
     instantMs_t now = utils::now();
     if (now > nextUpdate)
     {
-        nextUpdate = now + 100;
+        nextUpdate = now + UPDATE_DELAY_MS;
 
         // read back the voltage
         measuredVoltageRaw = hal.readVoltage();
@@ -26,18 +29,28 @@ void BatteryChannelControl::loop()
 
             // calculate the current with the limited input voltage
             effectiveCurrent = (shuntInput - measuredVoltage) / config().shuntResistance;
+            effectiveCurrent1s = alpha1s * effectiveCurrent + (1 - alpha1s) * effectiveCurrent1s;
+            effectiveCurrent5s = alpha5s * effectiveCurrent + (1 - alpha5s) * effectiveCurrent5s;
         }
-
         // calculate the battery voltage
         batteryVoltage = measuredVoltage - effectiveCurrent * config().connectionResistance;
+
+        batteryVoltage1s = alpha1s * batteryVoltage + (1 - alpha1s) * batteryVoltage1s;
     }
 
     if (now > nextControlUpdate)
     {
-        if (abs(batteryVoltage - limitVoltage) < 0.1)
-            nextControlUpdate = now + 200; // reduce control loop speed when close to the limit
+        float voltageDiffToLimit = abs(batteryVoltage - limitVoltage);
+        if (voltageDiffToLimit < 0.2)
+            nextControlUpdate = now + 800; // reduce control loop speed when close to the limit
+        else if (voltageDiffToLimit < 0.5)
+            nextControlUpdate = now + 400; // reduce control loop speed when close to the limit
         else
-            nextControlUpdate = now + 100;
+            nextControlUpdate = now + 200;
+
+#if IS_FRAMEWORK_NATIVE
+        nextControlUpdate = now + 100;
+#endif
 
         // adjst the target current based on the mode
         bool increaseCurrent = false;

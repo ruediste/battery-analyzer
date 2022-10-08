@@ -137,11 +137,6 @@ T min(T a, T b)
     return a <= b ? a : b;
 }
 #endif
-#ifndef ARDUINO
-#define LOG(x) std::cout << #x << ": " << (x) << "\n";
-#else
-#define LOG(x)
-#endif
 
 #ifndef ARDUINO
 #define sLOG(x) ;

@@ -11,7 +11,7 @@ void BatteryChannelHal::setOutputPWM(uint16_t value)
 
 uint16_t BatteryChannelHal::readVoltage()
 {
-    return 0xFFFF * (voltage + 0.1 * outputCurrent) / 6.6;
+    return 0xFFFF * (uBat()) / 6.6;
 }
 
 void BatteryChannelHal::init()
@@ -32,7 +32,7 @@ void BatteryChannelHal::loop()
     outputCurrent = 4 * (outputPWM / (double)MAX_PWM - 0.5);
 
     // calculate the required voltage on the other side of the shunt
-    double v = voltage + outputCurrent * (shuntR + connR);
+    double v = voltage + outputCurrent * (shuntR + connR + 0.1);
 
     // limit the voltage to 0..inputVoltage
     v = max(0., min(inputVoltage, v));
