@@ -191,6 +191,11 @@ namespace controller
             break;
         }
 
+        if (currentChannelSetup().mode == eeprom::ChannelMode::Charger && currentChannel().completeStatsPresent())
+        {
+            printTestSummary();
+            return;
+        }
         BatteryChannel &c = BatteryChannel::channels[_currentChannel];
         display::setCursor(0, 1);
         display::print(c.batteryVoltage());

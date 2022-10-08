@@ -6,7 +6,7 @@
 #include "messageDisplay.h"
 #include "log.h"
 
-#define USE_LIMIT_EXTENSION false
+#define USE_LIMIT_EXTENSION true
 
 #if IS_FRAMEWORK_NATIVE
 #define PRE_CHARGE_TIME_MS 6'000
@@ -19,6 +19,37 @@
 #define SETTLE_TIME_MS 20'000
 #define REDUCE_LIMIT_MAX_MS 120'000
 #endif
+
+/**
+ * Cutoff 0.1A:
+ * 0:
+ * Discharge: -1826mAh, -6.248Wh 225 min
+ * Charge:  ?, 7.2 Wh, 172 min
+ * Total: 400 min, 6.5h
+ *
+ * 1:  751mAh
+ *
+ * Cutoff 0.2A:
+ * 0:
+ * Discharge: -1414 mAh, -4.8 Wh, 167 min
+ * Charge: 1345.36 mAh, 5.4 Wh, 117 min
+ * eff: 87.63; diff: 5.1%
+ *
+ * 1:
+ * Discharge: -1115 mAh, -3.85 Wh, 109 min
+ * Charge: 1037mAh, 4.28 Wh, 103 min
+ * eff: 90%; diff: 7.5%
+ *
+ * Cutoff 0.2A + Pulse
+ *
+ * 0:
+ * Discharge: -1351, -4.51 Wh, 154 min
+ *
+ * 1:
+ * Discharge: -1103 mAh, -3.76 Wh, 100 min
+ * Charge 939 mAh 3.89 Wh 72 min
+ * 96.75%
+ * */
 
 /**
  * Controls the charging/discharge process of a
@@ -38,7 +69,7 @@ class ChargeController
     BatteryChannelControl *control;
 
 public:
-    bool idle;
+    bool idle = true;
     void init(BatteryChannelControl *c)
     {
         this->control = c;
@@ -86,40 +117,49 @@ public:
 
         if (limitExtended && now > lastStatisticsMs + 1000)
         {
-            float hoursElapsed = (now - lastStatisticsMs) / 1000. / 60.;
-            extendedLimitMahCharged += hoursElapsed + control->effectiveCurrent1s * hoursElapsed * 1000;
-
+            float hoursElapsed = (now - lastStatisticsMs) / 1000. / 60. / 60.;
+            extendedLimitMahCharged += abs(control->effectiveCurrent1s) * hoursElapsed * 1000;
             lastStatisticsMs = now;
         }
 
         if (now > nextDecision)
         {
+            bool currentBelowCutoff = (charging && control->effectiveCurrent5s < eeprom::data.chargeCutoffCurrent) || (!charging && -control->effectiveCurrent5s < eeprom::data.dischargeCutoffCurrent);
             if (limitExtended)
             {
-                if (extendedLimitMahCharged > 10)
+                if (currentBelowCutoff)
                 {
-                    LOG("ChargeController.loop() reduceLimit");
+                    LOG("ChargeController current5s: %f loop(): extended limit, current below cutoff => switch to idle", control->effectiveCurrent5s);
+                    idle = true;
+                }
+                else if (extendedLimitMahCharged > 20)
+                {
+                    LOG("ChargeController.loop() reduceLimit. charged: %f", extendedLimitMahCharged);
                     // setup normal discharge until next decision time
                     control->limitVoltage = limit;
                     nextDecision = now + SETTLE_TIME_MS;
                     limitExtended = false;
                     limitReducedInstant = now;
                 }
+                else
+                {
+                    nextDecision = now + 1000;
+                }
             }
             else
             {
-                bool currentBelowCutoff = (charging && control->effectiveCurrent5s < eeprom::data.chargeCutoffCurrent) || (!charging && -control->effectiveCurrent5s < eeprom::data.dischargeCutoffCurrent);
 
                 if (currentBelowCutoff)
                 {
                     if (USE_LIMIT_EXTENSION && limitReducedInstant != 0 && (now - limitReducedInstant) < REDUCE_LIMIT_MAX_MS)
                     {
                         // we're still waiting for the current to recover after a limit reduction
+                        LOG("ChargeController current5s: %f loop(): waiting for current after limit reduction\n", control->effectiveCurrent5s);
                         nextDecision = now + 1000;
                     }
                     else
                     {
-                        LOG("ChargeController current5s: %f loop(): idle=true\n", control->effectiveCurrent5s);
+                        LOG("ChargeController current5s: %f loop(): switch to idle", control->effectiveCurrent5s);
                         idle = true;
                     }
                 }
