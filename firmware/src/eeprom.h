@@ -105,7 +105,7 @@ namespace eeprom
 
         float efficiencyPercent()
         {
-            return -dischargeStats.wattSeconds / stats.wattSeconds * 100;
+            return (dischargeStats.wattSeconds / dischargeStats.ampereSeconds) / (stats.wattSeconds / stats.ampereSeconds) * 100;
         }
 
         float capacityDifferencePercent()

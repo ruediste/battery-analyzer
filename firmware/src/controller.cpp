@@ -61,20 +61,22 @@ namespace controller
 
     void printTestSummary()
     {
+        eeprom::ChannelSetup &c = currentChannelSetup();
+
         display::setCursor(0, 1);
         display::print(F("Eff "));
-        display::print(currentChannelSetup().efficiencyPercent());
+        display::print(c.efficiencyPercent());
         display::print(F("%"));
 
         display::setCursor(0, 2);
         display::print(F("Cap "));
-        display::print(currentChannelSetup().stats.milliAmperHours(), 0);
+        display::print((c.stats.milliAmperHours() + c.dischargeStats.milliAmperHours()) / 2., 0);
         display::print(F(" mAh "));
-        display::print(currentChannelSetup().capacityDifferencePercent(), 1);
+        display::print(c.capacityDifferencePercent(), 1);
         display::print(F("%"));
 
         display::setCursor(0, 3);
-        display::print(currentChannelSetup().stats.wattHours(), 3);
+        display::print((c.stats.wattHours() + c.dischargeStats.wattHours()) / 2, 3);
         display::print(F(" Wh"));
     }
 
