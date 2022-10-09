@@ -177,22 +177,34 @@ public:
 
         if (now < nextDecision)
         {
-            if (state == State::PreCharge && ctrl->idle)
+            if (ctrl->idle)
             {
-                // we went idle during pre charge, switch to pre discharge
-                setup->stats.reset();
-                ctrl->discharge();
-                nextDecision = now + PRE_DISCHARGE_TIME_MS;
-            }
-            if (state == State::PreDischarge && ctrl->idle)
-            {
-                // we went idle during pre discharge, something is wrong
-                done = true;
+                if (state == State::PreCharge)
+                {
+                    // we went idle during pre charge, switch to pre discharge
+                    state = State::PreDischarge;
+                    setup->stats.reset();
+                    ctrl->discharge();
+                    nextDecision = now + PRE_DISCHARGE_TIME_MS;
+                }
+                else if (state == State::PreDischarge)
+                {
+                    // we went idle during pre discharge, something is wrong
+                    done = true;
+                }
             }
         }
         else
         {
-            if (ctrl->idle)
+            if (state == State::PreDischarge)
+            {
+                // the pre discharge time is up, switch back to pre-charge
+                state = State::PreCharge;
+                setup->stats.reset();
+                ctrl->charge();
+                nextDecision = utils::now() + PRE_CHARGE_TIME_MS;
+            }
+            else if (ctrl->idle)
             {
                 switch (state)
                 {
@@ -201,12 +213,6 @@ public:
                     setup->stats.reset();
                     ctrl->discharge();
                     break;
-                case State::PreDischarge:
-                    state = State::PreCharge;
-                    setup->stats.reset();
-                    ctrl->charge();
-                    nextDecision = utils::now() + PRE_CHARGE_TIME_MS;
-                    return;
                 case State::MainCharge:
                     done = true;
                     completeStatsPresent = true;

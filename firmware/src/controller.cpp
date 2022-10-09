@@ -70,13 +70,13 @@ namespace controller
 
         display::setCursor(0, 2);
         display::print(F("Cap "));
-        display::print((c.stats.milliAmperHours() + c.dischargeStats.milliAmperHours()) / 2., 0);
+        display::print((abs(c.stats.milliAmperHours()) + abs(c.dischargeStats.milliAmperHours())) / 2., 0);
         display::print(F(" mAh "));
         display::print(c.capacityDifferencePercent(), 1);
         display::print(F("%"));
 
         display::setCursor(0, 3);
-        display::print((c.stats.wattHours() + c.dischargeStats.wattHours()) / 2, 3);
+        display::print((abs(c.stats.wattHours()) + abs(c.dischargeStats.wattHours())) / 2, 3);
         display::print(F(" Wh"));
     }
 

@@ -53,6 +53,10 @@ void BatteryChannel::loop()
         if (appliedChargeMode != setup().chargeMode)
         {
             appliedChargeMode = setup().chargeMode;
+
+            testController.done = true;
+            chargeController.idle = true;
+
             switch (appliedChargeMode)
             {
             case eeprom::ChargeMode::Charge:
