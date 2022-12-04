@@ -1,3 +1,0 @@
-(fp_lib_table
-  (lib (name "Channel")(type "KiCad")(uri "${KIPRJMOD}/Channel.pretty")(options "")(descr ""))
-)
